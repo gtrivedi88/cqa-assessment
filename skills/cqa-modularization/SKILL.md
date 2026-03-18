@@ -16,6 +16,22 @@ description: Use when assessing CQA parameters P2-P7 (modularization). Checks as
 | P6 | Assemblies use official template | Required |
 | P7 | Content not deeply nested (max 3 levels: master -> assembly -> topic) | Important |
 
+## Automation scripts
+
+This skill has an automation script in `cqa-assessment/scripts/`:
+
+| Script | Parameters | What it checks |
+|--------|-----------|----------------|
+| `check-content-types.py` | P3, P4, P5 | Prefix vs content type match, required elements, invalid block titles, procedure structure |
+
+Python 3.9+ stdlib only, no dependencies. Exit code 0 = pass, 1 = issues found.
+
+```bash
+python3 cqa-assessment/scripts/check-content-types.py "$DOCS_REPO"
+```
+
+Checks: filename prefix matches `:_mod-docs-content-type:`, `[role="_abstract"]` present, `[id="..._{context}"]` present, no procedure-only block titles in non-procedure files, no `==` subsections in procedures, ordered list after `.Procedure`.
+
 ## Step 1: Identify the docs repo
 
 Ask the user for the path to their Red Hat modular documentation repository. This is the directory that contains `assemblies/`, `topics/`, and `titles/` directories.
@@ -125,14 +141,50 @@ Verify the declared content type matches what the file actually contains:
 
 Check ALL procedure files for `.Procedure` with ordered steps. Check ALL concept files to confirm they have no `.Procedure` section. Check ALL reference files to confirm they contain structured data.
 
-### Check 5: Title conventions
+### Check 5: Title quality
 
-Per the modular docs guide:
-- **Procedure titles** must use gerund phrases (e.g., "Installing Dev Spaces", "Configuring OAuth")
-- **Concept titles** must use noun phrases (e.g., "Architecture overview", "Server components")
-- **Reference titles** must use noun phrases (e.g., "Supported platforms", "CheCluster fields")
+Reference:
+- https://redhat-documentation.github.io/modular-docs/#con-creating-procedure-modules_writing-mod-docs
+- https://ccs-internal-documentation.pages.redhat.com/peer-review/#_style
 
-Flag any procedure titles that don't start with a gerund, or concept/reference titles that use gerund phrases.
+Titles must be brief, complete, and descriptive. Assess three dimensions:
+
+**Check 5a: Grammatical form**
+
+| Module type | Required form | Examples |
+|-------------|--------------|----------|
+| PROCEDURE | Gerund phrase (verb + -ing) | "Configuring OAuth", "Installing Dev Spaces" |
+| CONCEPT | Noun phrase (NOT gerund) | "Architecture overview", "Server components" |
+| REFERENCE | Noun phrase | "Supported platforms", "CheCluster fields" |
+| ASSEMBLY (task-based) | Gerund phrase | "Configuring server components" |
+| ASSEMBLY (non-procedural) | Noun phrase | "Red Hat Process Automation Manager API reference" |
+
+An assembly is task-based if it contains procedure modules. Flag any procedure title not starting with a gerund, concept/reference titles using gerunds, or task-based assembly titles using noun phrases.
+
+**Check 5b: Title length**
+
+Per the CCS peer review guide, titles should be **3-11 words** long and have **50-80 characters**.
+
+| Violation | Threshold | Action |
+|-----------|-----------|--------|
+| Too short | 1-2 words AND title is vague without context | Flag — add descriptive context |
+| Too long | Over 11 words OR over 80 resolved characters | Flag — shorten by removing redundant qualifiers |
+| Borderline short | 2 words but unambiguous (e.g., "Creating workspaces") | Do NOT flag — acceptable in context |
+
+When counting characters, resolve AsciiDoc attributes to their display text (e.g., `{prod-short}` = "OpenShift Dev Spaces" = 20 chars).
+
+**Check 5c: Title quality**
+
+| Criterion | Rule |
+|-----------|------|
+| Descriptive | A reader should understand what the content covers from the title alone |
+| Customer-focused | Focus on customer tasks, not product features |
+| Sentence case | Only proper nouns, product names, and Kubernetes resource names are capitalized |
+| No weak openers | Do not start concept titles with "About" or "Understanding" — use a noun phrase that directly names the concept |
+| No vague titles | Single-word titles like "Architecture" or "Gateway" lack context — add the product or component name |
+| Correct article before attributes | `{prod-short}` resolves to "OpenShift Dev Spaces" (vowel sound) — use "an {prod-short}", not "a {prod-short}" |
+| No redundant product names | Do not hardcode product names before attributes that already contain them (e.g., "OpenShift {prod}" doubles "OpenShift") |
+| Concise phrasing | Remove filler words ("the code of applications running in" → "application code from") |
 
 ### Scoring
 
@@ -200,11 +252,62 @@ Search ALL concept, reference, and assembly files for these block titles. Any oc
 
 For every file that contains `.Additional resources`, verify that `[role="_additional-resources"]` appears on the line immediately before it. A missing role annotation is a violation.
 
+### Check 5: Prerequisites quality
+
+Reference: https://redhat-documentation.github.io/modular-docs/#prerequisites
+
+If a procedure includes prerequisites, verify:
+
+**Check 5a: Label format**
+
+- Must use `.Prerequisites` (plural, dot-prefixed AsciiDoc block title), even with a single prerequisite item
+- Flag: `.Prerequisite` (singular), `**Prerequisites**` (bold pseudo-heading), `== Prerequisites` (heading)
+
+**Check 5b: Formatting**
+
+- Prerequisites must be an unordered list using `*` bullet markers
+- List items must have parallel grammatical structure
+- Admonition blocks within the prerequisites section must be attached to a list item via `+` continuation — not placed as standalone blocks between `.Prerequisites` and `.Procedure`
+
+**Check 5c: Maximum count**
+
+- Do not exceed 10 prerequisite items per procedure
+
+**Check 5d: No steps in prerequisites (declarative language)**
+
+Prerequisites are conditions that must already be true, not steps the user must perform.
+
+| Pattern | Assessment |
+|---------|------------|
+| "You have access to..." | GOOD — declarative condition |
+| "A running instance of..." | GOOD — declarative state |
+| "`tool-name` is installed." | GOOD — declarative condition |
+| "You must have access to..." | BAD — imperative "must have", change to "You have" |
+| "Install the CLI tool." | BAD — imperative action step |
+| "Ensure that you have..." | BAD — imperative instruction |
+| "To get X, rebuild Y." | BAD — imperative action disguised as prerequisite |
+| "Ask a DNS provider to..." | BAD — imperative action step |
+
+A prerequisite may reference another procedure with an xref for HOW to achieve the condition (e.g., "`{prod-cli}`. See: xref:proc_installing-the-dsc-management-tool_{context}[].").
+
+**Check 5e: Placement**
+
+- `.Prerequisites` must appear before `.Procedure`
+- No rendered content (admonitions, paragraphs, snippet includes) between the prerequisites list and `.Procedure` unless attached to a list item via `+` continuation
+
+**Common placement violations:**
+
+| Pattern | Problem | Fix |
+|---------|---------|-----|
+| Standalone `[WARNING]` block between prerequisites and `.Procedure` | Content gap between sections | Attach to last prerequisite item with `+` continuation |
+| `include::snippets/...` between prerequisites and `.Procedure` | Snippet renders outside list | Attach to last prerequisite item with `+` continuation |
+| `[IMPORTANT]` block with imperative items between prerequisites and `.Procedure` | Combines placement and language violations | Convert to proper prerequisite list items with declarative wording |
+
 ### Scoring
 
 | Score | Criteria |
 |-------|----------|
-| **4** | All modules conform to their official template — all required elements present, correct block title usage, no procedure-only titles in wrong types, all Additional resources annotated |
+| **4** | All modules conform to their official template — all required elements present, correct block title usage, no procedure-only titles in wrong types, all Additional resources annotated, all prerequisites use declarative language with correct formatting |
 | **3** | 1-3 minor issues (e.g., a missing optional annotation, one misplaced block title) |
 | **2** | Multiple files missing required elements or widespread block title violations |
 | **1** | Templates not followed or not assessed |
@@ -219,7 +322,9 @@ Reference:
 
 P5 checks that every non-negotiable modular element is present AND meets quality standards. The structural presence of elements is checked in P4. P5 adds the quality dimension — particularly for the short description (abstract).
 
-### Check 1: Structural elements (overlap with P4)
+### Check 1: Structural elements and abstract formatting
+
+Reference: Ingrid Towey, "Rewrite for Impact: DITA short descriptions" (CCS presentation)
 
 Every non-snippet module must have:
 
@@ -228,20 +333,41 @@ Every non-snippet module must have:
 3. `= Title` level-1 heading
 4. `[role="_abstract"]` annotation followed by a prose paragraph
 
-If P4 Check 1 passed, this check passes automatically.
+If P4 Check 1 passed, the above 4 elements are already verified. Additionally, verify:
+
+**Abstract formatting rules (AsciiDoc-specific):**
+
+| Rule | Check |
+|------|-------|
+| **Blank line between title and abstract** | There must be at least one blank line between the `= Title` line and `[role="_abstract"]`. Other content (anchors, passthrough comments) may appear between them, but a blank line must exist. |
+| **No blank line between annotation and paragraph** | `[role="_abstract"]` must be followed **immediately** by the abstract paragraph on the next line — no blank lines between them. A blank line after the annotation disconnects the paragraph from the abstract role, making the abstract empty in DITA. |
+| **Single paragraph** | The abstract must be exactly one contiguous paragraph. No blank lines within it, no code blocks, no lists, no admonition blocks. A blank line must terminate the abstract before any subsequent body content. |
+| **Character count 50-300** | The abstract paragraph must be between 50 and 300 characters. Count raw AsciiDoc text (attributes like `{prod-short}` count as their literal text, e.g., 12 characters). "300 characters is between 42 and 75 words" (Ingrid Towey). |
+
+**Common structural violations:**
+
+| Pattern | Problem | Fix |
+|---------|---------|-----|
+| Blank line after `[role="_abstract"]` | Abstract is empty in DITA conversion | Remove the blank line |
+| Abstract flows into code block | Code block becomes part of abstract (inflated character count) | Insert blank line after abstract paragraph to separate |
+| Abstract flows into bullet list | List becomes part of abstract | Insert blank line after abstract paragraph |
+| Multiple paragraphs before first block title | Only the first paragraph is the shortdesc; the rest is `<context>` in DITA | Ensure only one paragraph between `[role="_abstract"]` and the first blank line |
 
 ### Check 2: Short description quality
 
-Per DITA guidelines, the short description (the paragraph after `[role="_abstract"]`) is a non-negotiable element with specific quality requirements:
+Reference: https://docs.oasis-open.org/dita/dita/v1.3/errata02/os/complete/part3-all-inclusive/langRef/base/shortdesc.html
+
+Per the DITA 1.3 specification, the short description (the paragraph after `[role="_abstract"]`) "represents the purpose or theme of the topic" and is "intended to be used as a link preview and for search results."
 
 **Structural requirements:**
 
 | Criterion | Rule |
 |-----------|------|
-| Length | 50-300 characters (1-2 complete sentences) |
+| Word count | Max 50 words — "a single, concise paragraph containing one or two sentences of no more than 50 words" (DITA 1.3 spec) |
 | Completeness | Must be complete sentences, not fragments ending in colons |
-| Self-contained | Must not flow into a list or block below it |
+| Self-contained | Must not flow into a list or block below it; must not use "the following" to reference content below |
 | Placement | Must be prose immediately after `[role="_abstract"]` — no admonition blocks or passthrough comments between the annotation and the paragraph |
+| Link preview | Must work as a standalone snippet in search results — no context-dependent pronouns, no xrefs, no references that only make sense within the document |
 
 **Content requirements by module type:**
 
@@ -252,15 +378,23 @@ Per DITA guidelines, the short description (the paragraph after `[role="_abstrac
 | REFERENCE | Describe what the reference item does, what it is, or what it is used for |
 | ASSEMBLY | Explain what the user will accomplish by working through the modules (the user story reworded) |
 
+**Reader motivation**: The short description must describe WHY the user should read the content — what they will gain, accomplish, or understand. A reader scanning search results should immediately understand whether this content addresses their need.
+
+**SEO and AI discoverability**: The short description should include keywords that users are likely to search on. For technical documentation, this means including relevant product names, technology terms, and action verbs that match user search intent.
+
 **Violations to flag:**
 
 | Category | Pattern | Example |
 |----------|---------|---------|
-| Self-referential | "This topic describes...", "This section covers...", "Use this procedure to...", "Learn how to..." | "Learn about the architecture and its main components." |
-| Title repetition | Short description restates the title with "You can" or imperative rewording and adds nothing new | Title: "Listing all workspaces" → SD: "You can list your workspaces by using the command line." |
+| Over word limit | Exceeds 50 words | Count words in the abstract paragraph; attributes like `{prod-short}` count as 1 word |
+| Self-referential | "This topic describes...", "This section covers...", "Learn how to...", "The following steps describe..." | "The following steps describe how to create the required objects." |
+| Forward-referencing | "the following methods:", "the following field descriptions", "as shown below" | "Implement the following methods:" (dangling reference in search snippet) |
+| Title repetition | Restates the title with "You can" or imperative rewording and adds nothing new | Title: "Listing all workspaces" → SD: "You can list your workspaces by using the command line." |
 | Missing WHY | States WHAT to do but not WHY it matters or what the user gains | "Configure the Dashboard to display custom samples." (no benefit) |
 | Sentence fragment | Ends with a colon and flows into a list | "Implement the following methods:" |
-| Over-length | Exceeds 300 characters or contains links/xrefs | Short descriptions should not contain `link:`, `xref:`, or `<<...>>` |
+| Poor link preview | Depends on title context, starts with pronouns, or is too vague to stand alone | "It is possible to fine-tune the log levels." (what log levels? which product?) |
+| Fallback framing | Positions the content as secondary to another topic | "If you have trouble doing X, you can do Y instead." |
+| Missing keywords | Contains no searchable technical terms relevant to the topic | Abstract with only generic words, no product/technology terms |
 
 ### Check 3: Abstract annotation consistency
 
@@ -413,6 +547,124 @@ Notes:
 | **1** | Deeply nested structure with no clear hierarchy or not assessed |
 
 Record: total files checked per check, number of violations, specific file paths with violations.
+
+## Quality: Information is conveyed using the correct content type
+
+Each file must use the modular documentation content type (CONCEPT, PROCEDURE, REFERENCE) that is most appropriate for the information it conveys. This goes beyond structural checks (P3/P4) — it verifies that the content type *selection* is correct.
+
+### Check 1: Procedure files contain actionable steps
+
+Every PROCEDURE file must have a `.Procedure` section with ordered steps (`. `) that are actionable instructions. Flag:
+
+- Procedure files where `.Procedure` contains only an xref redirect with no actual steps
+- Procedure files that are mostly explanatory with minimal/trivial steps
+
+### Check 2: Concept files contain explanatory content
+
+CONCEPT files must explain what/why — not how to do something. Flag:
+
+- Concept files with ordered lists (`. `) that function as undeclared procedures — rewrite as prose summary or unordered list
+- Concept files with `.Procedure` sections (also caught by P4 Check 3)
+
+Do NOT flag:
+- Concept files with unordered lists (`*`) — these are fine
+- Concept files with `==` subsections — these are allowed
+- Ordered lists that describe system behavior or enumerate options (not user steps)
+
+### Check 3: Reference files contain structured data
+
+REFERENCE files must contain tables, definition lists, or structured lookup data. Flag files that are primarily narrative explanation (→ should be concept) or step-by-step instructions (→ should be procedure).
+
+### Check 4: No mixed content types
+
+Each file must convey one type of information. Flag files that mix significant procedural steps with conceptual explanation in a way that should be split into separate modules.
+
+### Check 5: Thin wrapper modules
+
+Flag concept files that contain only an abstract and xrefs (typically ≤15 lines). These should be absorbed into the parent assembly's introductory text. Also flag orphaned concept files that are not included from any assembly.
+
+### Scoring
+
+| Score | Criteria |
+|-------|----------|
+| **4** | All content uses the correct content type, no procedural content in concepts, no trivial procedures, no orphaned files |
+| **3** | 1-3 minor issues (e.g., one thin wrapper, one concept with ordered-list steps rewritten as prose) |
+| **2** | Multiple content type mismatches or widespread thin wrappers |
+| **1** | Content types not checked or pervasive mismatches |
+
+Record: total files checked per type, violations per check category, files fixed.
+
+## Quality: American English grammar
+
+Content must be grammatically correct and follow American English conventions.
+
+### Check 1: American English spelling
+
+Use American spellings. Flag and fix British variants:
+
+| British | American |
+|---------|----------|
+| behaviour | behavior |
+| colour | color |
+| customise | customize |
+| analyse | analyze |
+| organisation | organization |
+| licence (noun) | license |
+| centre | center |
+| defence | defense |
+| catalogue | catalog |
+| programme | program |
+
+### Check 2: Article usage before AsciiDoc attributes
+
+When an AsciiDoc attribute resolves to a word starting with a vowel sound, the preceding article must be "an", not "a". Check all prose (not code blocks or YAML) for these patterns:
+
+| Attribute | Resolves to | Starts with | Correct article |
+|-----------|-------------|-------------|-----------------|
+| `{prod-short}` | OpenShift Dev Spaces | vowel "O" | **an** {prod-short} |
+| `{orch-name}` | OpenShift | vowel "O" | **an** {orch-name} |
+| `{ocp}` | OpenShift Container Platform | vowel "O" | **an** {ocp} |
+| `{prod}` | Red Hat OpenShift Dev Spaces | consonant "R" | **a** {prod} |
+| `{devworkspace}` | Dev Workspace | consonant "D" | **a** {devworkspace} |
+
+**Important**: When an adjective intervenes between the article and the attribute, the article agrees with the adjective, not the attribute. For example, "a new {orch-name} Secret" is correct because "a" modifies "new" (consonant).
+
+Search patterns:
+- `" a {prod-short}"` — all matches are violations
+- `" a {orch-name}"` — violations unless an adjective follows (e.g., "a new {orch-name}")
+- `" a {ocp}"` — all matches are violations
+
+### Check 3: Subject-verb agreement
+
+Verify that singular subjects take singular verbs and plural subjects take plural verbs. Common issues in technical docs:
+
+| Pattern | Problem | Fix |
+|---------|---------|-----|
+| "content are empty" | "content" (uncountable) takes singular verb | "contents are empty" or "content is empty" |
+| "a ... containers" | article "a" with plural noun | Remove article or use singular noun |
+| "data are" | Red Hat style: "data" is singular | "data is" |
+
+### Check 4: Compound modifier hyphenation
+
+Hyphenate compound modifiers that precede a noun:
+
+| Pattern | Problem | Fix |
+|---------|---------|-----|
+| "{prod-short} managed containers" | unhyphenated compound modifier | "{prod-short}-managed containers" |
+| "command line tool" | unhyphenated compound modifier | "command-line tool" |
+
+Do NOT hyphenate when the modifier follows the noun: "the containers are {prod-short} managed" (no hyphen needed).
+
+### Scoring
+
+| Score | Criteria |
+|-------|----------|
+| **4** | All content uses American English spelling, correct article usage before attributes, correct subject-verb agreement, and proper hyphenation |
+| **3** | 1-3 minor issues (e.g., a few article mismatches, one British spelling) |
+| **2** | Multiple British spellings, widespread article errors, or subject-verb disagreements |
+| **1** | Content not checked or pervasive grammar issues |
+
+Record: total files checked, violations per check category, files fixed.
 
 ## Step 8: Verify
 

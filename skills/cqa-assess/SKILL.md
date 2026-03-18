@@ -55,6 +55,28 @@ Recommended order (dependencies flow downward):
 10. `cqa-onboarding` — publishing readiness
 11. `cqa-report` — final summary
 
+## Automation Scripts
+
+Reusable scripts in `cqa-assessment/scripts/` automate repetitive checks. Each script accepts a docs repo path and exits 0 (pass) or 1 (issues found). Python 3.9+ stdlib only.
+
+| Script | Skill | Parameters |
+|--------|-------|-----------|
+| `check-product-names.py` | `cqa-legal-branding` | P18, O1, O3 |
+| `check-conscious-language.py` | `cqa-legal-branding` | Q23, O4 |
+| `check-content-types.py` | `cqa-modularization` | P3, P4, P5 |
+| `check-tp-disclaimers.py` | `cqa-legal-branding` | P19, O5 |
+| `check-external-links.py` | `cqa-legal-branding` | Q17 |
+| `check-legal-notices.py` | `cqa-legal-branding` | O2 |
+
+Run all at once:
+
+```bash
+for script in cqa-assessment/scripts/check-*.py; do
+  python3 "$script" "$DOCS_REPO"
+  echo "---"
+done
+```
+
 ## Important Rules
 
 - **Fix everything, then score.** Do not score a parameter until all fixable issues are resolved.
