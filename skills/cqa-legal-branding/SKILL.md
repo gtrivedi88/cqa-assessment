@@ -221,23 +221,63 @@ Searches for exclusionary terms using whole-word matching. Automatically exclude
 
 ### Check procedure
 
-Search active content for:
+**Tier 1 — "Do not use" (script-checked):**
 
 | Term | Replacement | Exception |
 |------|-------------|-----------|
-| `master` (in prose) | `primary`, `main`, `source` | Upstream GitHub URLs where repo uses `master` as default branch with no `main` alternative |
-| `slave` | `secondary`, `replica`, `standby` | None |
+| `master` (paired with slave) | `primary`, `main`, `source`, `control plane` | Upstream GitHub URLs where repo uses `master` as default branch with no `main` alternative. Acceptable for mastery of a skill. |
+| `slave` | `secondary`, `replica`, `worker`, `standby` | None |
 | `whitelist` | `allowlist` | None |
-| `blacklist` | `denylist` | None |
+| `blacklist` | `blocklist`, `denylist` | None |
 | `dummy` | `placeholder`, `example`, `sample` | None |
+| `sanity check` / `sanity test` | `test`, `verify`, `confidence check` | None |
+| `segregate` / `segregation` | `separate`, `segment` | None |
+| `evangelist` / `evangelize` | `advocate`, `ambassador` | None |
+
+**Tier 2 — "Do not use" (manual check):**
+
+| Term | Replacement | Exception |
+|------|-------------|-----------|
+| `man hour` / `man day` | `person hour`, `labor hour` | None |
+| `cripple` / `crippled` | `impacted`, `degraded`, `restricted` | None |
+| `black hat` / `white hat` (hacker) | `attacker` / `ethical hacker` | None |
+| `Chinese wall` | `ethical wall`, `firewall` | None |
+| `fubar` | Do not publish | None |
+| `squad` | `team`, `group` | None |
+
+**Tier 3 — "Use with caution" (manual check):**
+
+| Term | Guidance | Exception |
+|------|----------|-----------|
+| `abort` | Replace with `cancel`, `stop`, `end`, `fail` | OK if part of existing product/command terminology |
+| `disabled` | Do not use to refer to a person | OK for interface elements ("the button is disabled") |
+| `agnostic` | Replace with `independent`, `irrespective` | Standard in technical documentation for platform/vendor independence |
+| `kill` | Rephrase when not referring to Unix command | OK for `podman kill`, `kill` process command |
+| `master` (standalone) | Replace when possible with `main`, `primary` | OK for mastery of skill; OK in upstream URLs with no `main` alternative |
+| `tribe` / `tribal` | Do not use metaphorically | OK when referring to actual Indigenous groups |
+| `he or she` / `he/she` | Use `they` | None |
+
+**Tier 4 — Avoid (manual check for broader terms):**
+
+| Term | Guidance |
+|------|----------|
+| `crazy` / `insane` / `insanely` | Avoid neurodiversity bias; use precise alternatives |
+| `guru` / `ninja` / `rockstar` | Avoid superlatives in job titles |
+| `guys` | Use `team`, `folks`, `everyone` |
+| `weaponize` / `boots on the ground` | Avoid militaristic language |
+| `straw man` | Use `framework`, `rough draft` |
+| `man-in-the-middle` | Use `adversary-in-the-middle` when possible |
+| `handicap` | Use `limit`, `restrict` |
+
+**Reference:** Full term list in `Red Hat Conscious Language Terms - Not for distribution outside Red Hat - Sheet1.csv` at workspace root. Sources: IBM Style, Red Hat corporate style guide, Red Hat Supplementary Style Guide, Inclusive Naming Initiative.
 
 ### Scoring
 
 | Score | Criteria |
 |-------|----------|
-| **4** | 0 violations in prose; all exceptions documented with justification |
-| **3** | 1-3 minor violations or undocumented exceptions |
-| **2** | Multiple violations across files |
+| **4** | 0 violations across all tiers; all exceptions documented with justification; automated script passes |
+| **3** | 0 Tier 1 violations; 1-3 Tier 2-4 violations or undocumented exceptions |
+| **2** | Multiple violations across tiers |
 | **1** | Widespread use of exclusionary terms |
 
 ## Step 6: O2 — Copyright and legal notices

@@ -58,12 +58,38 @@ Use the cqa-vale-check skill to assess Vale DITA compliance
 10. `cqa-onboarding` (publishing readiness)
 11. `cqa-report` (generate final report)
 
+## Automation Scripts
+
+Reusable Python scripts in `scripts/` automate CQA parameter checks. Each script accepts a docs repo path as argument, prints structured output, and exits 0 (pass) or 1 (issues found). Python 3.9+ stdlib only, no dependencies.
+
+| Script | Skill | Parameters | What it checks |
+|--------|-------|-----------|----------------|
+| `check-product-names.py` | `cqa-legal-branding` | P18, O1, O3 | Hardcoded product names in prose and image alt text |
+| `check-conscious-language.py` | `cqa-legal-branding` | Q23, O4 | Exclusionary terms with whole-word matching and exception handling |
+| `check-content-types.py` | `cqa-modularization` | P3, P4, P5 | Filename prefix vs content type match, required elements, block titles |
+| `check-tp-disclaimers.py` | `cqa-legal-branding` | P19, O5 | TP/DP mentions, snippet existence, disclaimer compliance |
+| `check-external-links.py` | `cqa-legal-branding` | Q17 | External URL extraction and domain categorization |
+| `check-legal-notices.py` | `cqa-legal-branding` | O2 | LICENSE file and docinfo.xml existence |
+| `check-scannability.py` | `cqa-editorial` | Q1 | Sentence length >30 words, file average >22 words/sentence |
+| `check-simple-words.py` | `cqa-editorial` | Q3 | Complex word patterns (utilize, leverage, in order to, etc.) |
+| `check-readability.py` | `cqa-editorial` | Q4 | Flesch-Kincaid Grade Level per file and overall |
+| `check-fluff.py` | `cqa-editorial` | Q5 | Self-referential patterns, forward-referencing, filler phrases |
+
+Run all scripts:
+
+```bash
+for script in scripts/check-*.py; do
+  python3 "$script" /path/to/docs-repo/
+  echo "---"
+done
+```
+
 ## Prerequisites
 
 - Claude Code CLI
 - `vale` v3.x+ (for P1)
 - `asciidoctor-dita-vale` styles (for P1)
-- `python3` (for validate-refs.py, cqa-audit.py)
+- `python3` 3.9+ (for automation scripts)
 - Access to the target documentation repository
 
 ## Scoring

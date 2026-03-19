@@ -219,12 +219,58 @@ Flag and replace:
 - "aforementioned" -> name the thing directly
 - "in the event that" -> "if"
 
+#### Automation
+
+```sh
+python3 cqa-assessment/scripts/check-simple-words.py devspaces-documentation/
+```
+
+Scans prose in `topics/` and `assemblies/` for all 10 complex word patterns. Excludes code blocks, comments, attributes, and table content. Reports each violation with file, line, matched word, replacement, and context. Exits 0 (pass) or 1 (issues found).
+
 ### Q4: Readability
 
-- Target 11-12th grade reading level
-- Measured by average words per sentence and syllables per word
-- Technical terms (product names, Kubernetes resources) are acceptable complexity
-- Assess overall flow, not individual jargon-heavy sentences
+#### Flesch-Kincaid Grade Level
+
+The readability score is computed using the Flesch-Kincaid formula:
+
+```
+FK Grade = 0.39 * (words/sentences) + 11.8 * (syllables/words) - 15.59
+```
+
+#### Thresholds
+
+| Level | Grade | Meaning |
+|-------|-------|---------|
+| Ideal | <=10 | 9th-10th grade, accessible to non-native English speakers |
+| Minimum | <=12 | 11th-12th grade, Red Hat customer content average |
+| Advanced | >12 | Above minimum, review for simplification |
+
+- The overall grade across all files must be <=12 to pass
+- Individual files above grade 12 due to technical terminology density (Kubernetes, OpenShift, authentication, configuration) are acceptable
+- Files with fewer than 3 sentences are excluded from per-file analysis (volatile FK scores)
+
+#### What affects the grade
+
+- **Average sentence length** — shorter sentences lower the grade (see Q1 scannability)
+- **Syllables per word** — simpler words lower the grade (see Q3 simple words)
+- **Technical terms** — product names, Kubernetes resources, and infrastructure terms are acceptable complexity. Assess overall flow, not individual jargon-heavy sentences.
+
+#### Automation
+
+```sh
+python3 cqa-assessment/scripts/check-readability.py devspaces-documentation/
+```
+
+Computes Flesch-Kincaid Grade Level for prose in `topics/` and `assemblies/`. Resolves AsciiDoc attributes to their actual text for accurate syllable counting. Reports overall grade, per-file grades, and grade distribution. Exits 0 (overall <=12) or 1 (overall >12).
+
+#### Scoring
+
+| Score | Criteria |
+|-------|----------|
+| **4** | Overall FK grade <=10 (ideal range), no complex words (Q3), avg words/sentence <=22 |
+| **3** | Overall FK grade 10-12, minor issues in individual files due to jargon density |
+| **2** | Overall FK grade >12, multiple files with high grades from genuinely complex prose |
+| **1** | Readability not assessed or widespread complexity issues |
 
 ### Q5: Fluff
 
@@ -234,11 +280,29 @@ Flag and rewrite:
 - "This section provides..."
 - "This topic covers..."
 - "as mentioned above/below"
-- "Learn how to..."
-- "In this chapter..."
+- "Learn how to..." / "Learn about..." / "Learn more about..."
+- "In this chapter/section/topic..."
 - "The following describes..."
+- "This procedure/document describes..."
 - "It is important to note that..." -> state the fact directly
 - "Please note that..." -> remove entirely or state directly
+
+#### Automation
+
+```sh
+python3 cqa-assessment/scripts/check-fluff.py devspaces-documentation/
+```
+
+Scans prose in `topics/`, `assemblies/`, and `snippets/` for 11 fluff patterns. Excludes code blocks, comments, attributes, and table content. Reports each violation with file, line, matched text, fix guidance, and context. Exits 0 (pass) or 1 (issues found).
+
+#### Scoring
+
+| Score | Criteria |
+|-------|----------|
+| **4** | 0 fluff patterns found, no self-referential abstracts, no unnecessary introductions |
+| **3** | 1-3 minor fluff patterns (borderline cases like "as described in" with xref) |
+| **2** | Multiple fluff patterns, self-referential abstracts common |
+| **1** | Fluff not assessed or widespread issues |
 
 ### Q18: Style guide compliance
 
@@ -246,12 +310,104 @@ Flag and rewrite:
 - Follows IBM Style guide (primary authority)
 - See CLAUDE.md for specific style rules
 
-### Q20: Tone
+#### IBM Style key rules
+
+**Future tense avoidance:**
+- Do not use "will" for actions that happen as a result of user input or system behavior
+- Use present tense: "the system creates" not "the system will create"
+- Use present tense for consequences: "this causes" not "this will cause"
+- Exception: "will" is acceptable for genuine future events or promises ("the feature will be available in the next release")
+
+**Active voice:**
+- Prefer active voice over passive voice: "the autoscaler adds a node" not "a node is being added by the autoscaler"
+- Identify the actor and make it the subject: "you must set the username" not "the username must be set"
+- Passive voice is acceptable when the actor is unknown, irrelevant, or the system itself
+
+**Anthropomorphism:**
+- Do not attribute human characteristics to software or hardware
+- Incorrect: "the system thinks", "the server wants", "the tool knows", "the plugin tries to understand"
+- Correct: "the system processes", "the server requires", "the tool detects", "the plugin parses"
+- Exception: Industry-standard terms like "the server listens on port 8080" are acceptable
+
+**Possessives of brand/product names:**
+- Never use possessive forms of product or brand names
+- Incorrect: "OpenShift's configuration", "Dev Spaces's dashboard", "Kubernetes's API"
+- Correct: "the OpenShift configuration", "the Dev Spaces dashboard", "the Kubernetes API"
+
+**Phrasal verbs:**
+- Replace informal phrasal verbs with single-word equivalents
+- "make sure" → "ensure" or "verify"
+- "set up" → "configure" (when referring to configuration)
+- "find out" → "determine"
+- "carry out" → "perform" or "run"
+
+**Parallelism in lists:**
+- All items in a list must use the same grammatical structure
+- If the first item starts with a verb, all items must start with a verb
+- If the first item is a noun phrase, all items must be noun phrases
+- Incorrect: "* Configure the server\n* The client settings\n* Running the tests"
+- Correct: "* Configure the server\n* Update the client settings\n* Run the tests"
+
+#### Automation
+
+```sh
+python3 cqa-assessment/scripts/check-simple-words.py devspaces-documentation/
+```
+
+The simple words script checks for phrasal verbs ("make sure", "set up", "find out", "carry out") alongside complex words. For future tense, passive voice, and anthropomorphism, use grep-based searches or the cqa-editorial skill methodology (contextual LLM analysis required to distinguish valid from invalid uses).
+
+### Q20: Tone and conversational style
+
+#### Conversational level
+
+Dev Spaces documentation is enterprise product documentation for experienced administrators and developers. Per IBM Style, this falls under **"less conversational"** — professional, direct, second-person, no contractions.
+
+| Level | Audience | Example |
+|-------|----------|---------|
+| Most conversational | Marketing, "try and buy" | "Build your dream app." |
+| Fairly conversational | New users, getting started | "In minutes, you can set dates and dive in." |
+| **Less conversational** | **Experienced users (Dev Spaces)** | **"Configure OAuth to allow users to interact with Git repositories."** |
+| Least conversational | API docs, expert audience | "The SObject rows resource retrieves field values." |
+
+#### Tone rules
 
 - Professional, 2nd person ("you") for procedures
-- No first person in body text ("I", "we")
-- No contractions ("can't" -> "cannot", "isn't" -> "is not")
-- No informal language ("basically", "just", "simply")
+- No first person in body text ("I", "we", "our", "us")
+- No contractions ("can't" → "cannot", "isn't" → "is not") — contractions are only acceptable in "fairly conversational" cloud services content
+- No informal language: "basically", "just", "simply", "pretty", "cool", "stuff", "kind of", "sort of"
+- No anthropomorphism — do not attribute human qualities to software (see Q18 IBM Style rules)
+- No future tense "will" for immediate consequences — use present tense (see Q18 IBM Style rules)
+- No possessive forms of product/brand names (see Q18 IBM Style rules)
+
+#### Common mistakes to avoid (IBM Style)
+
+- Making everything a question or exclamation
+- Overusing sentence fragments for effect
+- Overusing punctuation for effect
+- Attempting humor that is not universal or timeless
+- Forgetting content must be appropriate for a global audience and translation
+
+#### Homographs
+
+Be aware of words spelled the same but with different meanings. Avoid using homographs close together in a sentence. Common homographs in technical docs: application, attribute, block, coordinates, number, object, project.
+
+#### What to check
+
+1. Search for contractions in prose (not code blocks or comments)
+2. Search for first person pronouns ("we ", "our ", "us ", "I ")
+3. Search for informal words: "just", "simply", "basically", "pretty", "cool", "stuff", "kind of", "sort of", "a lot", "lots of"
+4. Search for exclamation marks in prose (not code blocks)
+5. Search for rhetorical questions in headings or body text
+6. Verify consistent second-person ("you") usage in procedures
+
+#### Scoring
+
+| Score | Criteria |
+|-------|----------|
+| **4** | 0 contractions, 0 first person, 0 informal words in prose, consistent 2nd person, no exclamations/questions for effect, appropriate for global audience |
+| **3** | 1-3 informal words or minor tone inconsistencies |
+| **2** | Multiple contractions, first person usage, or informal language patterns |
+| **1** | Tone not assessed or widespread informality |
 
 ## Scoring
 

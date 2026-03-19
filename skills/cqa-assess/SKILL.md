@@ -67,6 +67,10 @@ Reusable scripts in `cqa-assessment/scripts/` automate repetitive checks. Each s
 | `check-tp-disclaimers.py` | `cqa-legal-branding` | P19, O5 |
 | `check-external-links.py` | `cqa-legal-branding` | Q17 |
 | `check-legal-notices.py` | `cqa-legal-branding` | O2 |
+| `check-scannability.py` | `cqa-editorial` | Q1 |
+| `check-simple-words.py` | `cqa-editorial` | Q3 |
+| `check-readability.py` | `cqa-editorial` | Q4 |
+| `check-fluff.py` | `cqa-editorial` | Q5 |
 
 Run all at once:
 

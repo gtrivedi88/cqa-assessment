@@ -90,25 +90,89 @@ When content is renamed, moved, or restructured, old URLs must continue to resol
 
 ### Rule
 
-Content should be interlinked so that users can navigate between related topics. Every topic should be reachable within 3 clicks from the guide's domain home page.
+Content should be interlinked so that users can navigate between related topics. Every topic should be reachable within 3 clicks from the guide's domain home page. The content journey must guide users through related content — concepts link to procedures, procedures link to related concepts and other procedures, and cross-guide links connect admin and user workflows.
 
 ### Check procedure
 
-1. **Assembly navigation** — verify that assemblies group related topics logically
-2. **Cross-references** — verify that related topics reference each other via xref or Additional resources
-3. **Concept-procedure linking** — concepts should link to related procedures and vice versa
-4. **Cross-guide links** — admin guide and user guide should cross-reference where relevant using `link:{prod-ag-url}` and `link:{prod-ug-url}`
+#### 4a. Assembly navigation and topic grouping
+
+1. **Read both master files** (`titles/administration_guide/master.adoc`, `titles/user_guide/master.adoc`) to understand the full guide structure
+2. **Verify logical topic ordering** within each assembly — information flow should follow dependency order (concept → procedure → reference)
+3. **Check standalone topics** included directly from master — verify they are strategically positioned (e.g., foundational concepts early, decommissioning late) and not orphaned
+4. **Verify click depth** — all topics must be reachable in ≤2 clicks from master (master → assembly → topic), with cross-references providing additional 3rd-click navigation
+
+#### 4b. Concept-procedure bidirectional linking
+
+1. **Concept files with Additional resources**: Check whether concept files link to related procedures via xref
+2. **Procedure files with Additional resources**: Check whether procedures link back to related concepts
+3. **Flag concept files without Additional resources**: Concepts without any navigation exits reduce content journey discoverability
+4. **Check for isolated topics**: Topics not referenced by any xref and without their own Additional resources are dead ends in the content journey
+
+#### 4c. Cross-guide links
+
+1. **Admin → User Guide links**: Search for `{prod-ug-url}` in admin guide topics and assemblies
+2. **User → Admin Guide links**: Search for `{prod-ag-url}` in user guide topics and assemblies
+3. **Link format verification**:
+   - Cross-guide links must use `link:` not `xref:` (guides are built separately)
+   - All `link:` macros must have descriptive link text (not empty `[]`)
+   - No legacy Antora module prefixes (`administration-guide:`, `user-guide:`)
+4. **Target ID verification**: Cross-guide link target IDs must match actual `[id="..."]` declared in the target guide's files. Legacy anchor names from the pre-modularization era may not resolve in the current format.
+5. **Missing cross-guide opportunities**: Check if topics in one guide clearly relate to topics in the other guide but lack cross-references (e.g., admin OAuth setup ↔ user credential usage, admin storage config ↔ user storage concepts)
+
+#### Common cross-guide link issues
+
+| Issue | Example | Fix |
+|-------|---------|-----|
+| Empty link text on `link:` macro | `link:{prod-ag-url}target-id[]` | Add descriptive text: `link:{prod-ag-url}target-id[Configuring feature]` |
+| Legacy target ID | `link:{prod-ug-url}old-section-name[...]` | Update to match current `[id="..."]` in target file |
+| Non-existent target | `link:{prod-ug-url}removed-content[...]` | Remove link or redirect to replacement content |
+| Antora module prefix | `link:{prod-ag-url}administration-guide:section[...]` | Remove `administration-guide:` prefix |
+| `xref:` across guides | `xref:admin-topic_{context}[]` in user guide | Change to `link:{prod-ag-url}admin-topic_{context}[...]` |
 
 ### Scoring
 
 | Score | Criteria |
 |-------|----------|
-| **4** | All topics reachable within 3 clicks; concepts link to procedures and vice versa; cross-guide links where relevant |
-| **3** | Most topics interlinked; a few isolated topics without cross-references |
-| **2** | Significant sections with no cross-references to related content |
-| **1** | Content is siloed with minimal interlinking |
+| **4** | All topics reachable within 3 clicks; concepts link to procedures and vice versa; cross-guide links where relevant; all cross-guide links have descriptive text and valid targets |
+| **3** | Most topics interlinked; a few isolated topics without cross-references; minor cross-guide link issues (≤3 empty link texts or legacy targets) |
+| **2** | Significant sections with no cross-references to related content; multiple broken cross-guide links |
+| **1** | Content is siloed with minimal interlinking; no cross-guide links; broken navigation paths |
 
-## Step 5: Verify
+## Step 5: Usability — Link currency and version consistency
+
+### Rule
+
+All external links must be current and use version attributes where applicable. OpenShift documentation URLs must use `{ocp4-ver}` attribute instead of hardcoded version numbers or `/latest/`. Hardcoded versions that describe feature availability thresholds (e.g., "available on OpenShift 4.20 and later") are acceptable.
+
+### What to check
+
+1. **Hardcoded OCP versions in URLs** — Search for `container-platform/X.Y/` where X.Y is NOT `{ocp4-ver}`. These should use the attribute.
+2. **`/latest/` in OCP URLs** — Search for `container-platform/latest/`. These should use `{ocp4-ver}` for consistent version pinning.
+3. **Version consistency in attributes.adoc** — Link attributes defined in `common/attributes.adoc` must also use `{ocp4-ver}`, not `/latest/` or hardcoded versions.
+4. **Feature availability thresholds** — Hardcoded versions in prose that describe when a feature became available (e.g., "This feature is available on OpenShift 4.20 and later") are acceptable. These are historical facts.
+5. **Devfile documentation versions** — Links to `devfile.io/docs/` should use a consistent version across all files.
+6. **Deprecated service warnings** — Check if any linked services have deprecation notices (e.g., Azure DevOps OAuth deprecation).
+
+### Common patterns
+
+```bash
+# Find hardcoded OCP versions in links
+grep -rn 'container-platform/[0-9]' topics/ assemblies/ --include='*.adoc'
+
+# Find /latest/ links
+grep -rn 'container-platform/latest/' topics/ assemblies/ common/ --include='*.adoc'
+```
+
+### Scoring
+
+| Score | Criteria |
+|-------|----------|
+| **4** | All OCP links use `{ocp4-ver}` attribute. No `/latest/` in active content. Link attributes in `attributes.adoc` use `{ocp4-ver}`. |
+| **3** | 1-5 instances of `/latest/` or hardcoded versions. Attribute links updated. |
+| **2** | Widespread hardcoded versions or `/latest/` usage (>5 instances). Inconsistent. |
+| **1** | No version management strategy. Hardcoded versions throughout. |
+
+## Step 6: Verify
 
 After fixing any violations, re-run the reference validation:
 
