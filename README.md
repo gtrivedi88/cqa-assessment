@@ -1,10 +1,32 @@
 # CQA 2.1 Assessment Toolkit
 
-A toolkit for running CQA 2.1 (Content Quality Assessment) against Red Hat modular documentation repositories. Covers all 54 assessment parameters across three tabs — Pre-migration, Quality, and Onboarding to docs.redhat.com — through 12 assessment guides and 10 automation scripts.
+Assess, fix, and score Red Hat modular documentation against all 54 CQA 2.1 parameters.
 
-Works with any AI coding assistant (Claude Code, Cursor, GitHub Copilot, Windsurf, Gemini CLI) or as a standalone manual process.
+```
+                         ┌─────────┐
+                         │  Assess  │  Run checks against your docs
+                         └────┬─────┘
+                              │
+                         ┌────▼─────┐
+                         │   Fix    │  Fix issues found (optional)
+                         └────┬─────┘
+                              │
+                         ┌────▼─────┐
+                         │  Score   │  Score each parameter (1-4) with evidence
+                         └────┬─────┘
+                              │
+                         ┌────▼─────┐
+                         │  Report  │  Before-and-after summary for JIRA/MRs
+                         └──────────┘
+```
 
-**Choose your scope** — run against an entire docs repo, a single assembly and its topics, or one topic file. **Choose your mode** — assess only (report issues, don't touch files) or assess and fix (fix issues, re-verify, then score).
+**What it checks**: 54 parameters across three CQA tabs — Pre-migration (P1-P19), Quality (Q1-Q25), and Onboarding (O1-O10) to docs.redhat.com.
+
+**Choose your scope**: entire docs repo, a single assembly and its topics, or one topic file.
+
+**Choose your mode**: assess only (report issues, don't touch files) or assess and fix (fix issues, re-verify, then score).
+
+**Works with any AI assistant**: Claude Code, Cursor, GitHub Copilot, Windsurf, Gemini CLI — or use manually with no AI at all.
 
 ## Quick start
 
@@ -66,40 +88,22 @@ Optional for Claude Code integration:
 
 ## Assessment guides
 
-Each guide in `skills/` covers a group of CQA parameters with detailed check procedures, scoring rubrics, automation references, and fix examples.
+Twelve guides in `skills/`, each covering a group of CQA parameters with detailed check procedures, scoring rubrics, automation references, and fix examples. Run them in this order — fixes in earlier steps prevent false positives in later ones:
 
-| Guide | Parameters | What it assesses |
-|-------|------------|------------------|
-| [`cqa-assess`](skills/cqa-assess/SKILL.md) | All | Main orchestrator — walks through all 54 parameters in dependency order |
-| [`cqa-vale-check`](skills/cqa-vale-check/SKILL.md) | P1 | Vale DITA linting — 0 errors, 0 warnings required |
-| [`cqa-modularization`](skills/cqa-modularization/SKILL.md) | P2-P7 | Assembly structure, module prefixes, content type declarations, nesting rules |
-| [`cqa-titles-descriptions`](skills/cqa-titles-descriptions/SKILL.md) | P8-P11, Q11 | Title quality, short descriptions, DITA abstract compliance, assembly intros |
-| [`cqa-procedures`](skills/cqa-procedures/SKILL.md) | P12, Q12-Q16 | Prerequisites, step count, command examples, verification sections |
-| [`cqa-editorial`](skills/cqa-editorial/SKILL.md) | P13-P14, Q1-Q5, Q18, Q20 | Scannability, readability, complex words, fluff, tone, style guide compliance |
-| [`cqa-links`](skills/cqa-links/SKILL.md) | P15-P17, Q24-Q25 | Broken xrefs, missing includes, dead URLs, content journey interlinking |
-| [`cqa-legal-branding`](skills/cqa-legal-branding/SKILL.md) | P18-P19, Q17, Q23, O1-O5 | Product name attributes, TP/DP disclaimers, conscious language, legal notices |
-| [`cqa-user-focus`](skills/cqa-user-focus/SKILL.md) | Q6-Q10 | Persona targeting, acronym expansion, admonition density, content depth |
-| [`cqa-tables-images`](skills/cqa-tables-images/SKILL.md) | Q19, Q21-Q22 | Screenshot usage, table captions and headers, image alt text |
-| [`cqa-onboarding`](skills/cqa-onboarding/SKILL.md) | O6-O10 | Support disclaimers, SME verification, Pantheon publishing, stage branches |
-| [`cqa-report`](skills/cqa-report/SKILL.md) | Final | Compiles all scores into a summary report with evidence |
-
-### Recommended assessment order
-
-Run checks in this order — fixes in earlier steps prevent false positives in later ones:
-
-| Order | Guide | Parameters | Why this order |
-|-------|-------|------------|----------------|
-| 1 | `cqa-vale-check` | P1 | Foundational — Vale fixes affect all other checks |
-| 2 | `cqa-modularization` | P2-P7 | Structural compliance must be correct before content checks |
-| 3 | `cqa-titles-descriptions` | P8-P11, Q11 | Titles and abstracts set the context for everything else |
-| 4 | `cqa-procedures` | P12, Q12-Q16 | Procedure structure (prerequisites, steps, verification) |
-| 5 | `cqa-editorial` | P13-P14, Q1-Q5, Q18, Q20 | Writing quality (scannability, readability, tone) |
-| 6 | `cqa-links` | P15-P17, Q24-Q25 | Cross-references and URL validation |
-| 7 | `cqa-legal-branding` | P18-P19, Q17, Q23, O1-O5 | Branding, disclaimers, conscious language |
-| 8 | `cqa-user-focus` | Q6-Q10 | Audience targeting and content quality |
-| 9 | `cqa-tables-images` | Q19, Q21-Q22 | Visual elements (screenshots, tables, alt text) |
-| 10 | `cqa-onboarding` | O6-O10 | Publishing readiness (Pantheon, stage branches) |
-| 11 | `cqa-report` | Final | Compile scores and evidence into a report |
+| Order | Guide | Parameters | What it assesses |
+|-------|-------|------------|------------------|
+| — | [`cqa-assess`](skills/cqa-assess/SKILL.md) | All | Main orchestrator — runs all guides below in order |
+| 1 | [`cqa-vale-check`](skills/cqa-vale-check/SKILL.md) | P1 | Vale DITA linting — foundational, fixes here affect all other checks |
+| 2 | [`cqa-modularization`](skills/cqa-modularization/SKILL.md) | P2-P7 | Assembly structure, module prefixes, content types, nesting rules |
+| 3 | [`cqa-titles-descriptions`](skills/cqa-titles-descriptions/SKILL.md) | P8-P11, Q11 | Title quality, short descriptions, DITA abstracts, assembly intros |
+| 4 | [`cqa-procedures`](skills/cqa-procedures/SKILL.md) | P12, Q12-Q16 | Prerequisites, step count, command examples, verification sections |
+| 5 | [`cqa-editorial`](skills/cqa-editorial/SKILL.md) | P13-P14, Q1-Q5, Q18, Q20 | Scannability, readability, complex words, fluff, tone, style guide |
+| 6 | [`cqa-links`](skills/cqa-links/SKILL.md) | P15-P17, Q24-Q25 | Broken xrefs, missing includes, dead URLs, content journey |
+| 7 | [`cqa-legal-branding`](skills/cqa-legal-branding/SKILL.md) | P18-P19, Q17, Q23, O1-O5 | Product names, TP/DP disclaimers, conscious language, legal notices |
+| 8 | [`cqa-user-focus`](skills/cqa-user-focus/SKILL.md) | Q6-Q10 | Persona targeting, acronym expansion, admonition density |
+| 9 | [`cqa-tables-images`](skills/cqa-tables-images/SKILL.md) | Q19, Q21-Q22 | Screenshots, table captions and headers, image alt text |
+| 10 | [`cqa-onboarding`](skills/cqa-onboarding/SKILL.md) | O6-O10 | Support disclaimers, SME verification, Pantheon publishing |
+| 11 | [`cqa-report`](skills/cqa-report/SKILL.md) | Final | Before-and-after summary report with scores and evidence |
 
 ## Usage examples
 
