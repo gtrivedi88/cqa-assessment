@@ -308,7 +308,7 @@ Scans prose in `topics/`, `assemblies/`, and `snippets/` for 11 fluff patterns. 
 
 - Follows Red Hat supplementary style guide
 - Follows IBM Style guide (primary authority)
-- See CLAUDE.md for specific style rules
+- See your project's style rules documentation for specific rules
 
 #### IBM Style key rules
 

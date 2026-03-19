@@ -1,116 +1,93 @@
-# CQA 2.1 Assessment Plugin for Claude Code
+# CQA 2.1 Assessment Toolkit
 
-A [Claude Code](https://docs.anthropic.com/en/docs/claude-code) plugin that runs CQA 2.1 (Content Quality Assessment) against Red Hat modular documentation repositories. It covers all 54 assessment parameters across three tabs — Pre-migration, Quality, and Onboarding to docs.redhat.com — through 12 specialized skills and 10 automation scripts.
+A toolkit for running CQA 2.1 (Content Quality Assessment) against Red Hat modular documentation repositories. Covers all 54 assessment parameters across three tabs — Pre-migration, Quality, and Onboarding to docs.redhat.com — through 12 assessment guides and 10 automation scripts.
+
+Works with any AI coding assistant (Claude Code, Cursor, GitHub Copilot, Windsurf, Gemini CLI) or as a standalone manual process.
+
+**Choose your scope** — run against an entire docs repo, a single assembly and its topics, or one topic file. **Choose your mode** — assess only (report issues, don't touch files) or assess and fix (fix issues, re-verify, then score).
 
 ## Quick start
 
-### 1. Clone the plugin
+### 1. Clone the repo
 
 ```bash
 git clone git@github.com:gtrivedi88/cqa-assessment.git
 ```
 
-### 2. Install into Claude Code
+### 2. Use with your AI assistant
+
+Point your AI assistant at the assessment guide for the parameter group you want to check. The guides in `skills/` are plain markdown files that any AI tool can read and follow. The AI runs the automation scripts automatically as part of the assessment.
+
+**Claude Code** (native plugin support):
 
 ```bash
 claude plugins add /path/to/cqa-assessment
 ```
 
-### 3. Run your first check
-
-Open Claude Code in your docs repo directory and type:
+Then invoke skills directly:
 
 ```
 /cqa-vale-check
+/cqa-modularization
+/cqa-assess           # Full assessment, all 54 parameters
 ```
 
-Claude walks you through Vale DITA linting, fixes any issues, and scores the parameter.
+**Cursor, Copilot, Windsurf, Gemini CLI, or any AI assistant:**
+
+Paste or reference the relevant `skills/*/SKILL.md` file in your prompt:
+
+```
+Read skills/cqa-vale-check/SKILL.md and follow its instructions
+to run a Vale DITA check on /path/to/your-docs-repo
+```
+
+```
+Read skills/cqa-editorial/SKILL.md and assess the editorial quality
+of /path/to/your-docs-repo
+```
+
+**Manual (no AI)**:
+
+Open any `skills/*/SKILL.md` file and follow the check procedures, commands, and scoring rubrics manually. The guides are written as step-by-step methodology documents.
 
 ## Prerequisites
 
 | Requirement | Version | Used by |
 |-------------|---------|---------|
-| [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) | Latest | All skills |
-| [Vale](https://vale.sh/) | v3.x+ | `cqa-vale-check` (P1) |
-| [asciidoctor-dita-vale](https://github.com/redhat-documentation/vale-at-red-hat) styles | Latest | `cqa-vale-check` (P1) |
-| Python | 3.9+ | Automation scripts |
+| Python | 3.9+ | Automation scripts (stdlib only, no pip install needed) |
+| [Vale](https://vale.sh/) | v3.x+ | P1: Vale DITA linting |
+| [asciidoctor-dita-vale](https://github.com/redhat-documentation/vale-at-red-hat) styles | Latest | P1: Vale DITA linting |
 
-The automation scripts use Python stdlib only — no `pip install` needed.
+Optional for Claude Code integration:
 
-## Usage
+| Requirement | Version | Used by |
+|-------------|---------|---------|
+| [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) | Latest | Native plugin and skill invocation |
 
-### Run a full assessment
+## Assessment guides
 
-The `cqa-assess` skill is the main orchestrator. It walks you through every parameter in dependency order, invokes the right sub-skill for each group, runs automated checks, fixes issues, and scores each parameter with evidence.
+Each guide in `skills/` covers a group of CQA parameters with detailed check procedures, scoring rubrics, automation references, and fix examples.
 
-```
-/cqa-assess
-```
-
-**Example prompt:**
-
-```
-Use the cqa-assess skill to run a full CQA 2.1 assessment on /home/user/docs/devspaces-documentation
-```
-
-Claude will:
-1. Ask for your docs repo path (if not provided)
-2. Start with P1 (Vale DITA linting) and work through all 54 parameters
-3. Run automated scripts where available
-4. Flag issues, fix them, and re-verify
-5. Score each parameter (1-4) with evidence
-6. Generate a final report at the end
-
-### Run a specific parameter group
-
-Each parameter group has its own skill. Invoke it directly to check just that area:
-
-```
-/cqa-vale-check
-```
-
-**Example prompts:**
-
-```
-# Check Vale DITA compliance (P1)
-Use the cqa-vale-check skill to run Vale against /home/user/docs/devspaces-documentation
-
-# Check modularization (P2-P7)
-Use the cqa-modularization skill to verify module structure in /home/user/docs/devspaces-documentation
-
-# Check titles and short descriptions (P8-P11, Q11)
-Use the cqa-titles-descriptions skill to assess abstract quality in /home/user/docs/devspaces-documentation
-
-# Check procedures (P12, Q12-Q16)
-Use the cqa-procedures skill to check prerequisites, step count, and verification sections
-
-# Check editorial quality (P13-P14, Q1-Q5, Q18, Q20)
-Use the cqa-editorial skill to check scannability, readability, and tone
-
-# Check links (P15-P17, Q24-Q25)
-Use the cqa-links skill to find broken xrefs, missing includes, and dead URLs
-
-# Check legal and branding (P18-P19, Q17, Q23, O1-O5)
-Use the cqa-legal-branding skill to check product names, disclaimers, and conscious language
-
-# Check user focus (Q6-Q10)
-Use the cqa-user-focus skill to check persona targeting, acronyms, and admonitions
-
-# Check tables and images (Q19, Q21-Q22)
-Use the cqa-tables-images skill to check screenshots, table captions, and alt text
-
-# Check onboarding readiness (O6-O10)
-Use the cqa-onboarding skill to check Pantheon publishing, SME verification, and stage branches
-
-# Generate final report
-Use the cqa-report skill to compile the assessment report
-```
+| Guide | Parameters | What it assesses |
+|-------|------------|------------------|
+| [`cqa-assess`](skills/cqa-assess/SKILL.md) | All | Main orchestrator — walks through all 54 parameters in dependency order |
+| [`cqa-vale-check`](skills/cqa-vale-check/SKILL.md) | P1 | Vale DITA linting — 0 errors, 0 warnings required |
+| [`cqa-modularization`](skills/cqa-modularization/SKILL.md) | P2-P7 | Assembly structure, module prefixes, content type declarations, nesting rules |
+| [`cqa-titles-descriptions`](skills/cqa-titles-descriptions/SKILL.md) | P8-P11, Q11 | Title quality, short descriptions, DITA abstract compliance, assembly intros |
+| [`cqa-procedures`](skills/cqa-procedures/SKILL.md) | P12, Q12-Q16 | Prerequisites, step count, command examples, verification sections |
+| [`cqa-editorial`](skills/cqa-editorial/SKILL.md) | P13-P14, Q1-Q5, Q18, Q20 | Scannability, readability, complex words, fluff, tone, style guide compliance |
+| [`cqa-links`](skills/cqa-links/SKILL.md) | P15-P17, Q24-Q25 | Broken xrefs, missing includes, dead URLs, content journey interlinking |
+| [`cqa-legal-branding`](skills/cqa-legal-branding/SKILL.md) | P18-P19, Q17, Q23, O1-O5 | Product name attributes, TP/DP disclaimers, conscious language, legal notices |
+| [`cqa-user-focus`](skills/cqa-user-focus/SKILL.md) | Q6-Q10 | Persona targeting, acronym expansion, admonition density, content depth |
+| [`cqa-tables-images`](skills/cqa-tables-images/SKILL.md) | Q19, Q21-Q22 | Screenshot usage, table captions and headers, image alt text |
+| [`cqa-onboarding`](skills/cqa-onboarding/SKILL.md) | O6-O10 | Support disclaimers, SME verification, Pantheon publishing, stage branches |
+| [`cqa-report`](skills/cqa-report/SKILL.md) | Final | Compiles all scores into a summary report with evidence |
 
 ### Recommended assessment order
 
-Run skills in this order — fixes in earlier checks prevent false positives in later ones:
+Run checks in this order — fixes in earlier steps prevent false positives in later ones:
 
-| Order | Skill | Parameters | Why this order |
+| Order | Guide | Parameters | Why this order |
 |-------|-------|------------|----------------|
 | 1 | `cqa-vale-check` | P1 | Foundational — Vale fixes affect all other checks |
 | 2 | `cqa-modularization` | P2-P7 | Structural compliance must be correct before content checks |
@@ -124,22 +101,115 @@ Run skills in this order — fixes in earlier checks prevent false positives in 
 | 10 | `cqa-onboarding` | O6-O10 | Publishing readiness (Pantheon, stage branches) |
 | 11 | `cqa-report` | Final | Compile scores and evidence into a report |
 
-## Automation scripts
+## Usage examples
 
-Ten Python scripts in [`scripts/`](scripts/) automate repeatable CQA checks. Each script:
+You can scope the assessment to an entire repo, a parameter group, a single assembly (and its topics), or a single topic file.
 
-- Accepts a docs repo path as its only argument
-- Prints structured, human-readable output
-- Exits `0` (pass) or `1` (issues found)
-- Uses Python 3.9+ stdlib only — zero dependencies
+### Full repo assessment
 
-### Run a single script
-
-```bash
-python3 scripts/check-product-names.py /home/user/docs/devspaces-documentation
+```
+Read skills/cqa-assess/SKILL.md and run a full CQA 2.1 assessment
+on /path/to/docs-repo
 ```
 
-**Example output:**
+### One parameter group across the repo
+
+```
+Read skills/cqa-editorial/SKILL.md and check editorial quality
+across /path/to/docs-repo
+```
+
+### One assembly and its topics
+
+An assembly includes multiple topics. Scoping to an assembly assesses the assembly file and every topic it includes:
+
+```
+Read skills/cqa-titles-descriptions/SKILL.md and assess titles and
+abstracts in assemblies/administration_guide/assembly_configuring-oauth.adoc
+and all the topics it includes
+```
+
+```
+Read skills/cqa-procedures/SKILL.md and check procedure quality in
+assemblies/user_guide/assembly_creating-workspaces.adoc and its topics
+```
+
+### One topic file
+
+```
+Read skills/cqa-editorial/SKILL.md and check editorial quality in
+topics/administration_guide/proc_configuring-proxy.adoc
+```
+
+```
+Read skills/cqa-titles-descriptions/SKILL.md and assess the title and
+abstract in topics/user_guide/con_user-workspaces.adoc
+```
+
+### Assess only vs assess and fix
+
+By default, the AI will report issues and offer to fix them. You can control this:
+
+```
+# Report only — don't modify any files
+Read skills/cqa-editorial/SKILL.md and assess editorial quality in
+/path/to/docs-repo. Report issues but do not fix them.
+
+# Assess and fix
+Read skills/cqa-editorial/SKILL.md and assess editorial quality in
+/path/to/docs-repo. Fix all issues found.
+```
+
+### All parameter groups (reference)
+
+| Prompt | What it checks |
+|--------|----------------|
+| `Read skills/cqa-vale-check/SKILL.md and run Vale against ...` | P1: Vale DITA linting |
+| `Read skills/cqa-modularization/SKILL.md and verify module structure in ...` | P2-P7: Module structure |
+| `Read skills/cqa-titles-descriptions/SKILL.md and assess titles in ...` | P8-P11, Q11: Titles and abstracts |
+| `Read skills/cqa-procedures/SKILL.md and check procedures in ...` | P12, Q12-Q16: Procedure quality |
+| `Read skills/cqa-editorial/SKILL.md and check editorial quality in ...` | P13-P14, Q1-Q5, Q18, Q20: Writing |
+| `Read skills/cqa-links/SKILL.md and check links in ...` | P15-P17, Q24-Q25: Links |
+| `Read skills/cqa-legal-branding/SKILL.md and check branding in ...` | P18-P19, Q17, Q23, O1-O5: Legal |
+| `Read skills/cqa-user-focus/SKILL.md and check user focus in ...` | Q6-Q10: Audience targeting |
+| `Read skills/cqa-tables-images/SKILL.md and check tables and images in ...` | Q19, Q21-Q22: Visual elements |
+| `Read skills/cqa-onboarding/SKILL.md and check onboarding in ...` | O6-O10: Publishing readiness |
+| `Read skills/cqa-report/SKILL.md and compile the report` | Final report |
+
+## Automation scripts
+
+Ten Python scripts in [`scripts/`](scripts/) automate repeatable CQA checks. When using an AI assistant, these scripts are **run automatically** — the assessment guides reference the right script for each parameter, and the AI executes them as part of the assessment workflow. No manual invocation needed.
+
+For manual use or CI integration, each script accepts a docs repo path as its only argument, prints structured output, and exits `0` (pass) or `1` (issues found). Python 3.9+ stdlib only — zero external dependencies.
+
+| Script | Parameters | What it checks |
+|--------|-----------|----------------|
+| [`check-product-names.py`](scripts/check-product-names.py) | P18, O1, O3 | Hardcoded product names in prose and image alt text |
+| [`check-conscious-language.py`](scripts/check-conscious-language.py) | Q23, O4 | Exclusionary terms (master, slave, whitelist, blacklist, dummy, sanity check) |
+| [`check-content-types.py`](scripts/check-content-types.py) | P3, P4, P5 | Filename prefix vs content type declaration, required elements, block titles |
+| [`check-tp-disclaimers.py`](scripts/check-tp-disclaimers.py) | P19, O5 | Technology Preview and Developer Preview disclaimer compliance |
+| [`check-external-links.py`](scripts/check-external-links.py) | Q17 | External URL extraction and domain categorization |
+| [`check-legal-notices.py`](scripts/check-legal-notices.py) | O2 | LICENSE file and docinfo.xml existence |
+| [`check-scannability.py`](scripts/check-scannability.py) | Q1 | Sentence length, paragraph length, list conversion opportunities |
+| [`check-simple-words.py`](scripts/check-simple-words.py) | Q3 | Complex word patterns (utilize, leverage, in order to, prior to, etc.) |
+| [`check-readability.py`](scripts/check-readability.py) | Q4 | Flesch-Kincaid Grade Level per file and overall |
+| [`check-fluff.py`](scripts/check-fluff.py) | Q5 | Self-referential patterns, forward-referencing, filler phrases |
+
+### Running scripts manually
+
+```bash
+# Run a single check
+python3 scripts/check-product-names.py /path/to/docs-repo
+
+# Run all 10 checks at once
+for script in scripts/check-*.py; do
+  python3 "$script" /path/to/docs-repo
+  echo "---"
+done
+```
+
+<details>
+<summary><strong>Example output: check-product-names.py</strong></summary>
 
 ```
 === Product Name Check (P18, O1, O3) ===
@@ -157,30 +227,57 @@ ISSUES FOUND:
 Summary: 2 issues in 2 files
 Exit code: 1
 ```
+</details>
 
-### Run all scripts at once
+<details>
+<summary><strong>Example output: check-scannability.py</strong></summary>
 
-```bash
-for script in scripts/check-*.py; do
-  python3 "$script" /home/user/docs/devspaces-documentation
-  echo "---"
-done
 ```
+=== Scannability Check (Q1) ===
 
-### Script reference
+Scanning topics/ and assemblies/ for sentence length issues...
 
-| Script | Parameters | What it checks |
-|--------|-----------|----------------|
-| [`check-product-names.py`](scripts/check-product-names.py) | P18, O1, O3 | Hardcoded product names in prose and image alt text. Auto-excludes code blocks, comments, UI labels, and plugin names. |
-| [`check-conscious-language.py`](scripts/check-conscious-language.py) | Q23, O4 | Exclusionary terms (master, slave, whitelist, blacklist, dummy, sanity check) with whole-word matching. Auto-excludes URLs, filenames, and code blocks. |
-| [`check-content-types.py`](scripts/check-content-types.py) | P3, P4, P5 | Filename prefix vs `:_mod-docs-content-type:` match, required elements (`[role="_abstract"]`, `[id="..._{context}"]`), invalid block titles in wrong module types, `==` subsections in procedures. |
-| [`check-tp-disclaimers.py`](scripts/check-tp-disclaimers.py) | P19, O5 | Technology Preview and Developer Preview mentions classified by context (prose, table, link, comment, code block). Validates snippet existence and disclaimer compliance. |
-| [`check-external-links.py`](scripts/check-external-links.py) | Q17 | Extracts all external URLs and categorizes domains (Red Hat, Upstream/Community, Authoritative, Third-party). Filters placeholders and unresolved attributes. |
-| [`check-legal-notices.py`](scripts/check-legal-notices.py) | O2 | Verifies LICENSE/LICENCE file existence and `docinfo.xml` in each `titles/*/` directory. Detects copyright year. |
-| [`check-scannability.py`](scripts/check-scannability.py) | Q1 | Flags sentences over 30 words and files averaging over 22 words/sentence. Handles AsciiDoc structure (list items, code blocks, tables, definition lists). |
-| [`check-simple-words.py`](scripts/check-simple-words.py) | Q3 | Flags complex word patterns: utilize, leverage, in order to, prior to, subsequent to, commence, terminate, facilitate, aforementioned, in the event that. |
-| [`check-readability.py`](scripts/check-readability.py) | Q4 | Calculates Flesch-Kincaid Grade Level per file and overall. Resolves AsciiDoc attributes for accurate syllable counting. Pass threshold: overall grade level 12 or below. |
-| [`check-fluff.py`](scripts/check-fluff.py) | Q5 | Flags self-referential patterns (This section describes, Learn how to), forward-referencing (The following describes), and filler phrases (It is important to note that, Please note that). |
+LONG SENTENCES (>30 words):
+
+  topics/administration_guide/con_architecture-overview.adoc:28
+    34 words: "The gateway uses OpenShift OAuth to authenticate users and..."
+
+  topics/user_guide/proc_starting-a-workspace.adoc:15
+    31 words: "When you start a workspace from a devfile the system creates..."
+
+FILES WITH HIGH AVERAGE (>22 words/sentence):
+
+  topics/administration_guide/con_running-at-scale.adoc
+    Average: 24.3 words/sentence (18 sentences)
+
+Summary: 2 long sentences, 1 high-average file
+Exit code: 1
+```
+</details>
+
+<details>
+<summary><strong>Example output: check-readability.py</strong></summary>
+
+```
+=== Readability Check (Q4) ===
+
+Calculating Flesch-Kincaid Grade Level...
+
+GRADE DISTRIBUTION:
+  Grade 6-8:   ████████████████████ 42 files (22%)
+  Grade 9-10:  ████████████████████████████████████ 89 files (47%)
+  Grade 11-12: ██████████████████████ 52 files (27%)
+  Grade 13+:   ███ 7 files (4%)
+
+FILES ABOVE GRADE 12:
+  topics/administration_guide/ref_checluster-fields.adoc       Grade 14.2
+  topics/administration_guide/con_security-best-practices.adoc  Grade 13.1
+  ...
+
+Overall average: 10.4 (target: ≤12)
+PASS
+```
+</details>
 
 ## Scoring
 
@@ -193,28 +290,28 @@ Every parameter is scored on a 4-point scale:
 | **2** | Mostly does not meet | Significant issues requiring remediation |
 | **1** | Does not meet | Critical blockers preventing publication |
 
-The `cqa-report` skill compiles all scores into a summary table with per-parameter evidence and an overall rating.
+The `cqa-report` guide compiles all scores into a summary table with per-parameter evidence and an overall rating.
 
 ## Project structure
 
 ```
 cqa-assessment/
-├── .claude-plugin/
-│   └── plugin.json              # Plugin metadata
-├── skills/                      # 12 assessment skills
-│   ├── cqa-assess/SKILL.md      # Main orchestrator
-│   ├── cqa-vale-check/SKILL.md  # P1: Vale DITA linting
-│   ├── cqa-modularization/      # P2-P7: Module structure
-│   ├── cqa-titles-descriptions/ # P8-P11, Q11: Titles and abstracts
-│   ├── cqa-procedures/          # P12, Q12-Q16: Procedure quality
-│   ├── cqa-editorial/           # P13-P14, Q1-Q5, Q18, Q20: Writing
-│   ├── cqa-links/               # P15-P17, Q24-Q25: Links
-│   ├── cqa-legal-branding/      # P18-P19, Q17, Q23, O1-O5: Legal
-│   ├── cqa-user-focus/          # Q6-Q10: User focus
-│   ├── cqa-tables-images/       # Q19, Q21-Q22: Visual elements
-│   ├── cqa-onboarding/          # O6-O10: Publishing readiness
-│   └── cqa-report/              # Final report generation
-├── scripts/                     # 10 automation scripts
+├── .claude-plugin/                  # Claude Code integration (optional)
+│   └── plugin.json
+├── skills/                          # 12 assessment guides (plain markdown)
+│   ├── cqa-assess/SKILL.md          # Main orchestrator
+│   ├── cqa-vale-check/SKILL.md      # P1: Vale DITA linting
+│   ├── cqa-modularization/SKILL.md  # P2-P7: Module structure
+│   ├── cqa-titles-descriptions/     # P8-P11, Q11: Titles and abstracts
+│   ├── cqa-procedures/              # P12, Q12-Q16: Procedure quality
+│   ├── cqa-editorial/               # P13-P14, Q1-Q5, Q18, Q20: Writing
+│   ├── cqa-links/                   # P15-P17, Q24-Q25: Links
+│   ├── cqa-legal-branding/          # P18-P19, Q17, Q23, O1-O5: Legal
+│   ├── cqa-user-focus/              # Q6-Q10: User focus
+│   ├── cqa-tables-images/           # Q19, Q21-Q22: Visual elements
+│   ├── cqa-onboarding/              # O6-O10: Publishing readiness
+│   └── cqa-report/                  # Final report generation
+├── scripts/                         # 10 automation scripts (Python 3.9+)
 │   ├── check-product-names.py
 │   ├── check-conscious-language.py
 │   ├── check-content-types.py
@@ -226,23 +323,27 @@ cqa-assessment/
 │   ├── check-readability.py
 │   └── check-fluff.py
 └── references/
-    ├── scoring-guide.md         # Scoring rules and parameter mapping
-    └── checklist.md             # Full 54-parameter checklist
+    ├── scoring-guide.md             # Scoring rules and parameter mapping
+    └── checklist.md                 # Full 54-parameter checklist
 ```
 
 ## How it works
 
-Each skill in `skills/` contains a `SKILL.md` file that teaches Claude Code how to assess a group of CQA parameters. When you invoke a skill, Claude:
+Each guide in `skills/` is a `SKILL.md` file — a plain markdown document containing:
 
-1. **Reads the skill definition** to understand the rules, checks, and scoring criteria
-2. **Identifies your docs repo** (asks for the path or uses the current directory)
-3. **Runs automated checks** using the Python scripts in `scripts/` where available
-4. **Performs manual review** for parameters that require contextual understanding (tone, audience targeting, content quality)
-5. **Fixes issues** directly in the source files
-6. **Re-runs verification** to confirm 0 issues remain
-7. **Scores the parameter** with evidence (command output, file diffs, review notes)
+- **Rules** — what the CQA parameter requires
+- **Check procedures** — step-by-step instructions with commands to run
+- **Scoring rubrics** — criteria for each score (4, 3, 2, 1)
+- **Common issues** — anti-patterns, violations, and fix examples
+- **Automation references** — which Python scripts to run for automated checks
 
-The skills reference Red Hat's modular documentation framework, DITA 1.3 spec, IBM Style guide, and Red Hat supplementary style guide as authoritative sources.
+You can use these guides three ways:
+
+1. **With an AI assistant** — feed the SKILL.md to your AI tool and let it execute the checks, fix issues, and score parameters
+2. **As a Claude Code plugin** — install the repo as a plugin for native skill invocation (`/cqa-vale-check`, `/cqa-assess`, etc.)
+3. **Manually** — read the guide and follow the procedures yourself
+
+The guides reference [Red Hat modular documentation framework](https://redhat-documentation.github.io/modular-docs/), [DITA 1.3 spec](https://docs.oasis-open.org/dita/dita/v1.3/dita-v1.3-part3-all-inclusive.html), [IBM Style guide](https://www.ibm.com/docs/en/ibm-style), and [Red Hat supplementary style guide](https://redhat-documentation.github.io/supplementary-style-guide/) as authoritative sources.
 
 ## References
 

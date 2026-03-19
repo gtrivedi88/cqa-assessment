@@ -13,15 +13,30 @@ See [scoring-guide.md](../../references/scoring-guide.md) for score definitions 
 
 ## Workflow
 
+### Step 0: Ask the user for scope and mode
+
+Before starting any checks, ask the user two questions:
+
+**Scope** — what to assess:
+- **Entire repo** — all files in the repository
+- **One assembly** — a specific assembly file and all topics it includes (resolve `include::` directives to find the topic files)
+- **One topic** — a single topic file
+- **One parameter group** — a specific skill (e.g., editorial only) across the chosen file scope
+
+**Mode** — what to do with issues:
+- **Assess only** — report issues and score, but do not modify any files
+- **Assess and fix** — report issues, fix them, re-verify, then score
+
+### Steps 1-8: For each parameter
+
 1. **Pick a parameter** from the checklist (or let the user specify one)
 2. **Invoke the matching skill** for that parameter group
-3. **Run the check** — automated where possible, manual review where needed
-4. **Fix issues** found during the check
-5. **Verify the fix** — re-run the check to confirm 0 issues
-6. **Score the parameter** with evidence
-7. **Report results** to the user: score, evidence, files changed
-8. **Mark parameter complete** on the checklist
-9. **Repeat** for the next parameter
+3. **Run the check** — automated where possible, manual review where needed. Apply to the files within the user's chosen scope only.
+4. **If assess-and-fix mode**: fix issues found during the check, then re-run the check to confirm 0 issues
+5. **Score the parameter** with evidence
+6. **Report results** to the user: score, evidence, files changed (if any)
+7. **Mark parameter complete** on the checklist
+8. **Repeat** for the next parameter
 
 ## Skill Map
 
@@ -83,7 +98,8 @@ done
 
 ## Important Rules
 
-- **Fix everything, then score.** Do not score a parameter until all fixable issues are resolved.
+- **Respect the user's chosen mode.** In assess-only mode, never modify files. In assess-and-fix mode, fix everything before scoring.
+- **Respect the user's chosen scope.** Only assess files within the scope (repo, assembly + its topics, or single topic). Do not scan files outside the scope.
 - **0 errors, 0 warnings for automated checks.** Never suppress or ignore.
 - **Evidence before claims.** Run the verification command, read the output, then state the score.
-- **Update CLAUDE.md** with any new rules discovered during the assessment.
+- **Update project rules** with any new rules discovered during the assessment.
