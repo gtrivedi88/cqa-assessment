@@ -1,6 +1,7 @@
 ---
 name: cqa-editorial
 description: Use when assessing CQA parameters P13-P14, Q1-Q5, Q18, Q20 (editorial quality). Checks grammar, content types, readability, scannability, fluff, style guide compliance, and tone.
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 ---
 
 # CQA P13-P14, Q1-Q5, Q18, Q20: Editorial Quality
@@ -18,6 +19,10 @@ description: Use when assessing CQA parameters P13-P14, Q1-Q5, Q18, Q20 (editori
 | Q5 | No fluff ("This section describes...", "as mentioned") | Important |
 | Q18 | Content follows Red Hat style guide | Required |
 | Q20 | Appropriate conversational tone (2nd person, professional) | Important |
+
+## Directory note
+
+Some repos use `modules/` instead of `topics/` for content files. All `topics/` references in this skill apply equally to `modules/`. The automation scripts accept `--scan-dirs` to override the default scan directories.
 
 ## Checks
 
@@ -186,7 +191,7 @@ For each file in `topics/` and `assemblies/`, check the main title (`= `) and su
 #### User pronoun rules
 
 - **Animate users** (persons, human accounts): use "who" — "users who want to configure..."
-- **Inanimate users** (system accounts, Linux users, SELinux users): use "that" — "a Linux user that has restricted access..."
+- **Inanimate entities** (system accounts, user mappings, roles): use "that" — "a Linux user account that has restricted access...", "an SELinux user mapping that restricts..."
 - **Ambiguous relative clauses**: When "that" could refer to either an inanimate object or an animate user, restructure the sentence to eliminate ambiguity
 
 #### Verification section coverage
@@ -222,7 +227,7 @@ Flag and replace:
 #### Automation
 
 ```sh
-python3 cqa-assessment/scripts/check-simple-words.py devspaces-documentation/
+python3 ../cqa-assess/scripts/check-simple-words.py "$DOCS_REPO"
 ```
 
 Scans prose in `topics/` and `assemblies/` for all 10 complex word patterns. Excludes code blocks, comments, attributes, and table content. Reports each violation with file, line, matched word, replacement, and context. Exits 0 (pass) or 1 (issues found).
@@ -233,7 +238,7 @@ Scans prose in `topics/` and `assemblies/` for all 10 complex word patterns. Exc
 
 The readability score is computed using the Flesch-Kincaid formula:
 
-```
+```text
 FK Grade = 0.39 * (words/sentences) + 11.8 * (syllables/words) - 15.59
 ```
 
@@ -258,7 +263,7 @@ FK Grade = 0.39 * (words/sentences) + 11.8 * (syllables/words) - 15.59
 #### Automation
 
 ```sh
-python3 cqa-assessment/scripts/check-readability.py devspaces-documentation/
+python3 ../cqa-assess/scripts/check-readability.py "$DOCS_REPO"
 ```
 
 Computes Flesch-Kincaid Grade Level for prose in `topics/` and `assemblies/`. Resolves AsciiDoc attributes to their actual text for accurate syllable counting. Reports overall grade, per-file grades, and grade distribution. Exits 0 (overall <=12) or 1 (overall >12).
@@ -290,7 +295,7 @@ Flag and rewrite:
 #### Automation
 
 ```sh
-python3 cqa-assessment/scripts/check-fluff.py devspaces-documentation/
+python3 ../cqa-assess/scripts/check-fluff.py "$DOCS_REPO"
 ```
 
 Scans prose in `topics/`, `assemblies/`, and `snippets/` for 11 fluff patterns. Excludes code blocks, comments, attributes, and table content. Reports each violation with file, line, matched text, fix guidance, and context. Exits 0 (pass) or 1 (issues found).
@@ -351,22 +356,22 @@ Scans prose in `topics/`, `assemblies/`, and `snippets/` for 11 fluff patterns. 
 #### Automation
 
 ```sh
-python3 cqa-assessment/scripts/check-simple-words.py devspaces-documentation/
+python3 ../cqa-assess/scripts/check-simple-words.py "$DOCS_REPO"
 ```
 
-The simple words script checks for phrasal verbs ("make sure", "set up", "find out", "carry out") alongside complex words. For future tense, passive voice, and anthropomorphism, use grep-based searches or the cqa-editorial skill methodology (contextual LLM analysis required to distinguish valid from invalid uses).
+The simple words script checks for phrasal verbs ("make sure", "set up", "find out", "carry out") alongside complex words. For future tense, passive voice, and anthropomorphism, use grep-based searches or the `cqa-tools:cqa-editorial` skill methodology (contextual LLM analysis required to distinguish valid from invalid uses).
 
 ### Q20: Tone and conversational style
 
 #### Conversational level
 
-Dev Spaces documentation is enterprise product documentation for experienced administrators and developers. Per IBM Style, this falls under **"less conversational"** — professional, direct, second-person, no contractions.
+Red Hat product documentation is enterprise documentation for experienced administrators and developers. Per IBM Style, this typically falls under **"less conversational"** — professional, direct, second-person, no contractions. Determine the appropriate level based on the product's target audience.
 
 | Level | Audience | Example |
 |-------|----------|---------|
 | Most conversational | Marketing, "try and buy" | "Build your dream app." |
 | Fairly conversational | New users, getting started | "In minutes, you can set dates and dive in." |
-| **Less conversational** | **Experienced users (Dev Spaces)** | **"Configure OAuth to allow users to interact with Git repositories."** |
+| **Less conversational** | **Experienced users (typical RH product docs)** | **"Configure OAuth to allow users to interact with Git repositories."** |
 | Least conversational | API docs, expert audience | "The SObject rows resource retrieves field values." |
 
 #### Tone rules
@@ -411,4 +416,4 @@ Be aware of words spelled the same but with different meanings. Avoid using homo
 
 ## Scoring
 
-See [scoring-guide.md](../../references/scoring-guide.md).
+See [scoring-guide.md](../../reference/scoring-guide.md).

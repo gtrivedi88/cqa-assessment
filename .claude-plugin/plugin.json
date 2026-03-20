@@ -1,11 +1,9 @@
 {
-  "name": "cqa-assessment",
-  "description": "CQA 2.1 Content Quality Assessment skills for Red Hat modular documentation. Validates DITA compliance, modularization, writing quality, and docs.redhat.com onboarding readiness.",
+  "name": "cqa-tools",
   "version": "1.0.0",
+  "description": "CQA 2.1 Content Quality Assessment toolkit for Red Hat modular documentation. Assess, fix, and score 54 parameters across Pre-migration, Quality, and Onboarding tabs.",
   "author": {
     "name": "Gaurav Trivedi",
     "email": "gtrivedi@redhat.com"
-  },
-  "license": "MIT",
-  "keywords": ["cqa", "dita", "documentation", "quality", "assessment", "red-hat", "modular-docs", "vale"]
+  }
 }

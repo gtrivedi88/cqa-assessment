@@ -4,7 +4,7 @@
 
 | Score | Label | Meaning |
 |-------|-------|---------|
-| **4** | Meets criteria | Fully compliant. Zero or near-zero issues. |
+| **4** | Meets criteria | Fully compliant. Zero issues found. |
 | **3** | Mostly meets | Minor issues exist but do not block publishing. |
 | **2** | Mostly does not meet | Significant issues that should be resolved before publishing. |
 | **1** | Does not meet | Critical issues that block publishing. |
@@ -12,7 +12,7 @@
 ## Scoring Rules
 
 - **Evidence-based only.** Every score must cite specific file counts, line numbers, or tool output. Never score based on impression.
-- **Run the check before scoring.** If a check requires a tool (Vale, validate-refs.py), run it and paste the result.
+- **Run the check before scoring.** If a check requires a tool (Vale, the docs repo's `validate-refs.py`), run it and paste the result.
 - **Zero tolerance for "4".** A score of 4 means zero violations. One violation drops to 3.
 - **Distinguish required vs important.** Required items that score 2 or below are blockers. Important items at 2 are flagged but not blocking.
 
@@ -74,7 +74,7 @@ Each parameter assessment must include:
 | Q8 | Acronyms defined before use | Important | `cqa-user-focus` |
 | Q9 | Additional resources with useful links | Important | `cqa-user-focus` |
 | Q10 | Admonitions not overused | Important | `cqa-user-focus` |
-| Q11 | Assembly intro targets audience | Important | `cqa-titles-descriptions` |
+| Q11 | Assembly intro targets audience | Important | `cqa-user-focus` |
 | Q12 | Procedures <= 10 steps | Important | `cqa-procedures` |
 | Q13 | Procedures include command examples | Important | `cqa-procedures` |
 | Q14 | Optional/conditional steps formatted correctly | Important | `cqa-procedures` |

@@ -19,6 +19,7 @@ Usage:
 Exit codes:
     0 - No violations found
     1 - Violations found
+    2 - Invalid arguments (e.g., docs_dir is not a directory)
 """
 
 import argparse
@@ -27,7 +28,7 @@ import re
 import sys
 
 # Directories to scan (relative to DOCS_DIR)
-SCAN_DIRS = ["assemblies", "topics"]
+DEFAULT_SCAN_DIRS = ["assemblies", "modules", "topics"]
 
 # Directories to skip
 SKIP_DIRS = {"legacy-content-do-not-use"}
@@ -61,10 +62,12 @@ ATTR_WORD_COUNTS = {
 }
 
 
-def collect_adoc_files(docs_dir):
+def collect_adoc_files(docs_dir, scan_dirs=None):
     """Collect all .adoc files from scan directories."""
+    if scan_dirs is None:
+        scan_dirs = DEFAULT_SCAN_DIRS
     files = []
-    for scan_dir in SCAN_DIRS:
+    for scan_dir in scan_dirs:
         full_dir = os.path.join(docs_dir, scan_dir)
         if not os.path.isdir(full_dir):
             continue
@@ -168,26 +171,43 @@ def is_list_item(line):
 
 
 def is_definition_list(line):
-    """Check if a line is a definition list entry (term:: description)."""
+    """Check if a line is a definition list entry (term:: description).
+
+    Matches patterns like:
+    - ``term``:: description
+    - Term:: description
+    - lowercase_term:: description
+    Excludes AsciiDoc directives (include::, image::, ifdef::, etc.).
+    """
     s = line.strip()
-    # Match: `term`:: or term:: patterns
     if re.search(r'::\s*$', s) or re.search(r'::\s+\S', s):
-        # But not include:: or image:: etc.
-        if not re.match(r'^\w+::', s) or re.match(r'^[A-Z]', s):
+        # Exclude AsciiDoc directives (include::, image::, ifdef::, etc.)
+        if re.match(r'^(include|image|ifdef|ifndef|endif|ifeval)::', s):
+            return False
+        # Match backtick-quoted terms, uppercase terms, or any non-directive term
+        if s.startswith("`") or re.match(r'^[A-Z]', s):
             return True
-        # Definition lists with backtick terms
-        if s.startswith("`"):
+        # Also match lowercase definition list terms (e.g., "storage::")
+        if re.match(r'^[a-z]', s):
             return True
     return False
 
 
 def is_link_only_item(line):
-    """Check if a list item contains only a link/xref (no prose to check)."""
+    """Check if a list item contains only a link/xref (no prose to check).
+
+    Uses fullmatch to ensure the entire content after the list marker is a
+    single link or xref — items like ``* xref:foo[Install] to prepare``
+    contain trailing prose and must NOT be skipped.
+    """
     s = line.strip()
-    # Remove list marker
-    content = re.sub(r'^\*{1,3}\s+', '', s)
-    # Check if remaining content is just a link or xref
-    if re.match(r'^(xref:|link:|<<)', content):
+    # Remove unordered or ordered list markers
+    content = re.sub(r'^(?:\*{1,3}|\.{1,3})\s+', '', s)
+    # Require the entire remaining content to be a single link/xref
+    if re.fullmatch(
+        r'(?:xref:\S+\[[^\]]*\]|link:\S+\[[^\]]*\]|<<[^>]+>>)',
+        content,
+    ):
         return True
     return False
 
@@ -348,6 +368,12 @@ def main():
         action="store_true",
         help="Show high-average and long-paragraph details",
     )
+    parser.add_argument(
+        "--scan-dirs",
+        nargs="+",
+        default=DEFAULT_SCAN_DIRS,
+        help="Directories to scan (default: %(default)s)",
+    )
     args = parser.parse_args()
 
     docs_dir = os.path.abspath(args.docs_dir)
@@ -358,13 +384,13 @@ def main():
     print("Content Scannability Check")
     print("=" * 60)
     print(f"Scanning: {docs_dir}")
-    print(f"Directories: {', '.join(SCAN_DIRS)}")
+    print(f"Directories: {', '.join(args.scan_dirs)}")
     print(f"Thresholds: sentence >{HARD_LIMIT} words, "
           f"avg >{AVG_LIMIT} words/sentence, "
           f"paragraph >{MAX_PARAGRAPH_SENTENCES} sentences")
     print()
 
-    files = collect_adoc_files(docs_dir)
+    files = collect_adoc_files(docs_dir, args.scan_dirs)
     all_word_counts = []
     violations = []
     high_avg_files = []

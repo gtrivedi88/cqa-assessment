@@ -1,6 +1,7 @@
 ---
 name: cqa-onboarding
 description: Use when assessing CQA parameters O6-O10 (onboarding to docs.redhat.com). Checks support disclaimers, SME verification, source format, Pantheon publishing, and official site publication.
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 ---
 
 # CQA O6-O10: Onboarding
@@ -15,6 +16,15 @@ description: Use when assessing CQA parameters O6-O10 (onboarding to docs.redhat
 | O9 | Content published through Pantheon | Required |
 | O10 | Content published to official Red Hat site | Required |
 
+## Directory note
+
+Some repos use `modules/` instead of `topics/` for content files. All `topics/` references in this skill apply equally to `modules/`. The automation scripts accept `--scan-dirs` to override the default scan directories.
+
+## Cross-references
+
+- **O6 (support disclaimers)** overlaps with P19/O5 in `cqa-tools:cqa-legal-branding`. Use the cqa-legal-branding TP/DP disclaimer results as evidence for O6 compliance. O6 adds the community-supported component and unsupported configuration checks.
+- **O7 (SME/QE verification)** can use Q15 evidence from `cqa-tools:cqa-procedures` — a high percentage of procedures with `.Verification` sections is supporting evidence of testability.
+
 ## Step 1: Identify the docs repo
 
 Ask the user for the path to their Red Hat modular documentation repository. Store as `DOCS_REPO`.
@@ -27,7 +37,7 @@ All content must be clearly identified as supported, Technology Preview, or Deve
 
 ### Check procedure
 
-1. **Technology Preview features**: Verify all TP features have the standard `[IMPORTANT]` disclaimer via `snip_technology-preview.adoc`. Cross-reference with the P19/O5 check in `cqa-legal-branding`.
+1. **Technology Preview features**: Verify all TP features have the standard `[IMPORTANT]` disclaimer via `snip_technology-preview.adoc`. Cross-reference with the P19/O5 check in `cqa-tools:cqa-legal-branding`.
 
 2. **Developer Preview features**: Verify all DP features have the standard DP disclaimer. DP features receive zero Red Hat support.
 
@@ -41,10 +51,10 @@ All content must be clearly identified as supported, Technology Preview, or Deve
 
 ```bash
 # Find all support-related disclaimers
-grep -rn -i 'technology preview\|tech preview\|developer preview\|not supported\|unsupported\|community' topics/ assemblies/ --include='*.adoc'
+grep -rn -i 'technology preview\|tech preview\|developer preview\|not supported\|unsupported\|community' topics/ modules/ assemblies/ --include='*.adoc'
 
 # Find TP/DP snippet includes
-grep -rn 'snip_technology-preview\|snip_developer-preview' topics/ assemblies/ --include='*.adoc'
+grep -rn 'snip_technology-preview\|snip_developer-preview' topics/ modules/ assemblies/ --include='*.adoc'
 ```
 
 ### Scoring
@@ -78,7 +88,7 @@ This parameter requires human confirmation and cannot be fully assessed through 
 
 3. **CI/CD pipeline validation**: Verify the pipeline runs automated checks that catch technical issues:
    - Vale DITA linting
-   - Cross-reference validation (`validate-refs.py`)
+   - Cross-reference validation (the docs repo's own `scripts/validate-refs.py`)
    - Build validation (ccutil compile)
 
 4. **SME merge requests**: Check for recent MRs from SMEs that update technical content:
@@ -118,28 +128,28 @@ All source content files must be in AsciiDoc (`.adoc`) format following the Red 
 1. **File format verification**:
    ```bash
    # Count all content files by extension
-   find "$DOCS_REPO/topics" "$DOCS_REPO/assemblies" "$DOCS_REPO/snippets" -type f | sed 's/.*\.//' | sort | uniq -c | sort -rn
+   find "$DOCS_REPO/topics" "$DOCS_REPO/modules" "$DOCS_REPO/assemblies" "$DOCS_REPO/snippets" -type f 2>/dev/null | sed 's/.*\.//' | sort | uniq -c | sort -rn
    ```
    All content files must be `.adoc`. No `.md` (Markdown), `.xml` (DocBook), `.dita`, or `.html` source files.
 
 2. **Encoding verification**:
    ```bash
-   # Check for non-UTF-8 files
-   file "$DOCS_REPO/topics/"**/*.adoc | grep -v "UTF-8\|ASCII"
+   # Check for non-UTF-8 files in all content directories
+   file "$DOCS_REPO/topics/"**/*.adoc "$DOCS_REPO/modules/"**/*.adoc "$DOCS_REPO/assemblies/"**/*.adoc "$DOCS_REPO/snippets/"**/*.adoc 2>/dev/null | grep -v "UTF-8\|ASCII"
    ```
    All files must be UTF-8 encoded.
 
 3. **Line endings**:
    ```bash
    # Check for Windows line endings (CRLF)
-   grep -rPl '\r\n' "$DOCS_REPO/topics/" "$DOCS_REPO/assemblies/" --include='*.adoc' | head -5
+   grep -rPl '\r\n' "$DOCS_REPO/topics/" "$DOCS_REPO/modules/" "$DOCS_REPO/assemblies/" "$DOCS_REPO/snippets/" --include='*.adoc' 2>/dev/null | head -5
    ```
    All files must use LF (Unix) line endings, not CRLF (Windows).
 
 4. **Directory structure**: Verify the repo follows Red Hat modular docs layout:
    - `titles/` — publishable guide entry points with `master.adoc`
    - `assemblies/` — assembly files (collections of topics)
-   - `topics/` — individual content modules
+   - `topics/` (or `modules/`) — individual content modules
    - `snippets/` — reusable inline fragments
    - `common/` — shared attributes and metadata
    - `images/` — image assets
@@ -236,7 +246,7 @@ Content must be published to the official Red Hat documentation site (`docs.redh
 
 1. **Stage branch existence**: Verify stage branches exist for the current and previous releases:
    ```bash
-   git branch -r | grep 'stage'
+   git -C "$DOCS_REPO" branch -r | grep 'stage'
    ```
 
 2. **Stage branch pipeline**: Verify the stage branch triggers the Pantheon publishing pipeline. The pipeline should have:
@@ -244,15 +254,15 @@ Content must be published to the official Red Hat documentation site (`docs.redh
    - `ccutil` — validates and compiles the assembled content
    - `git_push` — pushes generated Pantheon files back to the branch
 
-3. **Published URL verification**: If you have access, verify the content is accessible at the published URL:
-   - Admin Guide: `https://docs.redhat.com/en/documentation/red_hat_openshift_dev_spaces/{version}/html-single/administration_guide/`
-   - User Guide: `https://docs.redhat.com/en/documentation/red_hat_openshift_dev_spaces/{version}/html-single/user_guide/`
+3. **Published URL verification**: If you have access, verify the content is accessible at the published URL. The URL pattern is typically:
+   - `https://docs.redhat.com/en/documentation/__<product_slug>__/__<version>__/html-single/__<guide_name>__/`
+   - Replace the placeholders with the product's actual values from its `common/attributes.adoc`.
 
 4. **Version coverage**: Verify that published documentation covers the current supported versions.
 
 5. **Content freshness**: Check that the most recent stage branch reflects the latest content updates:
    ```bash
-   git log --oneline -5 origin/devspaces-X.Y-stage
+   git -C "$DOCS_REPO" log --oneline -5 origin/<product>-<X.Y>-stage
    ```
 
 ### Scoring
@@ -274,5 +284,5 @@ ls "$DOCS_REPO/pantheon/"
 ls "$DOCS_REPO/titles/"*/master.adoc
 ls "$DOCS_REPO/titles/"*/docinfo.xml
 ls "$DOCS_REPO/.editorconfig"
-git branch -r | grep 'stage'
+git -C "$DOCS_REPO" branch -r | grep 'stage'
 ```

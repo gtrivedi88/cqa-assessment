@@ -1,6 +1,7 @@
 ---
 name: cqa-links
 description: Use when assessing CQA parameters P15-P17, Q24-Q25 (links and URLs). Checks for broken xrefs, missing includes, missing images, redirect integrity, and content interlinking.
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 ---
 
 # CQA P15-P17, Q24-Q25: Links and URLs
@@ -15,6 +16,10 @@ description: Use when assessing CQA parameters P15-P17, Q24-Q25 (links and URLs)
 | Q24 | Content includes links to relevant content journey | Important |
 | Q25 | Pages interlinked within 3 clicks | Important |
 
+## Directory note
+
+Some repos use `modules/` instead of `topics/` for content files. All `topics/` references in this skill apply equally to `modules/`. The automation scripts accept `--scan-dirs` to override the default scan directories.
+
 ## Step 1: Identify the docs repo
 
 Ask the user for the path to their Red Hat modular documentation repository. Store as `DOCS_REPO`.
@@ -27,7 +32,7 @@ Every cross-reference, include directive, and image reference must resolve to an
 
 ### Check procedure
 
-Run the reference validation script:
+Run the docs repo's own reference validation script (this is not a plugin script — it lives in the docs repo at `$DOCS_REPO/scripts/validate-refs.py`):
 ```bash
 cd "$DOCS_REPO"
 python3 scripts/validate-refs.py
@@ -157,10 +162,10 @@ All external links must be current and use version attributes where applicable. 
 
 ```bash
 # Find hardcoded OCP versions in links
-grep -rn 'container-platform/[0-9]' topics/ assemblies/ --include='*.adoc'
+grep -rn 'container-platform/[0-9]' topics/ modules/ assemblies/ --include='*.adoc' 2>/dev/null
 
 # Find /latest/ links
-grep -rn 'container-platform/latest/' topics/ assemblies/ common/ --include='*.adoc'
+grep -rn 'container-platform/latest/' topics/ modules/ assemblies/ common/ --include='*.adoc' 2>/dev/null
 ```
 
 ### Scoring
@@ -184,5 +189,6 @@ python3 scripts/validate-refs.py
 Then run Vale to ensure no new warnings were introduced:
 
 ```bash
+# Adjust directory names to match your repo structure (topics/ or modules/)
 vale assemblies/ topics/ titles/administration_guide/master.adoc titles/user_guide/master.adoc
 ```

@@ -1,6 +1,7 @@
 ---
 name: cqa-tables-images
 description: Use when assessing CQA parameters Q19, Q21-Q22 (tables and images). Checks for excessive screenshots, table captions, and image alt text.
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 ---
 
 # CQA Q19, Q21-Q22: Tables and Images
@@ -12,6 +13,10 @@ description: Use when assessing CQA parameters Q19, Q21-Q22 (tables and images).
 | Q19 | No excessive use of screen images | Important |
 | Q21 | Tables have captions and are clearly labeled | Important |
 | Q22 | Images have captions and meaningful alt text | Important |
+
+## Directory note
+
+Some repos use `modules/` instead of `topics/` for content files. All `topics/` references in this skill apply equally to `modules/`. The automation scripts accept `--scan-dirs` to override the default scan directories.
 
 ## Checks
 
@@ -142,4 +147,4 @@ Every image must be clearly explained by surrounding text:
 
 ## Scoring
 
-See [scoring-guide.md](../../references/scoring-guide.md).
+See [scoring-guide.md](../../reference/scoring-guide.md).

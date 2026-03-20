@@ -17,6 +17,7 @@ Usage:
 Exit codes:
     0 - No violations found
     1 - Violations found
+    2 - Invalid arguments (e.g., docs_dir is not a directory)
 """
 
 import argparse
@@ -24,8 +25,12 @@ import os
 import re
 import sys
 
+# NOTE: find_block_ranges() and is_skip_line() are intentionally duplicated
+# from check-fluff.py to keep each script standalone with no extra imports
+# beyond the standard library.
+
 # Directories to scan (relative to DOCS_DIR)
-SCAN_DIRS = ["assemblies", "topics"]
+DEFAULT_SCAN_DIRS = ["assemblies", "modules", "topics"]
 
 # Directories to skip
 SKIP_DIRS = {"legacy-content-do-not-use"}
@@ -56,10 +61,12 @@ COMPLEX_WORDS = [
 ]
 
 
-def collect_adoc_files(docs_dir):
+def collect_adoc_files(docs_dir, scan_dirs=None):
     """Collect all .adoc files from scan directories."""
+    if scan_dirs is None:
+        scan_dirs = DEFAULT_SCAN_DIRS
     files = []
-    for scan_dir in SCAN_DIRS:
+    for scan_dir in scan_dirs:
         full_dir = os.path.join(docs_dir, scan_dir)
         if not os.path.isdir(full_dir):
             continue
@@ -198,6 +205,12 @@ def main():
         "docs_dir",
         help="Path to the documentation repository root",
     )
+    parser.add_argument(
+        "--scan-dirs",
+        nargs="+",
+        default=DEFAULT_SCAN_DIRS,
+        help="Directories to scan (default: %(default)s)",
+    )
     args = parser.parse_args()
 
     docs_dir = os.path.abspath(args.docs_dir)
@@ -208,11 +221,11 @@ def main():
     print("Simple Words Check")
     print("=" * 60)
     print(f"Scanning: {docs_dir}")
-    print(f"Directories: {', '.join(SCAN_DIRS)}")
+    print(f"Directories: {', '.join(args.scan_dirs)}")
     print(f"Patterns: {len(COMPLEX_WORDS)} complex word/phrase patterns")
     print()
 
-    files = collect_adoc_files(docs_dir)
+    files = collect_adoc_files(docs_dir, args.scan_dirs)
     all_violations = []
 
     for filepath, rel_path in files:

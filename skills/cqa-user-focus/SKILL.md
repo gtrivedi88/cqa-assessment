@@ -1,9 +1,10 @@
 ---
 name: cqa-user-focus
-description: Use when assessing CQA parameters Q6-Q10 (user focus). Checks persona targeting, pain point coverage, acronym expansion, Additional resources quality, and admonition density.
+description: Use when assessing CQA parameters Q6-Q11 (user focus). Checks persona targeting, pain point coverage, acronym expansion, Additional resources quality, admonition density, and assembly introduction audience targeting.
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 ---
 
-# CQA Q6-Q10: User Focus
+# CQA Q6-Q11: User Focus
 
 ## Parameters
 
@@ -15,6 +16,10 @@ description: Use when assessing CQA parameters Q6-Q10 (user focus). Checks perso
 | Q9 | Additional resources include useful links across RH sites | Important |
 | Q10 | Admonitions not overused (max 3-4 per file) | Important |
 | Q11 | Assembly introductions target audience and persona | Important |
+
+## Directory note
+
+Some repos use `modules/` instead of `topics/` for content files. All `topics/` references in this skill apply equally to `modules/`. The automation scripts accept `--scan-dirs` to override the default scan directories.
 
 ## Checks
 
@@ -98,7 +103,7 @@ Documentation must address the pain points users are likely to encounter when ac
 
 ### Q8: Acronyms
 
-First use of each acronym per guide must be expanded. Common acronyms to check:
+First use of each acronym per guide must be expanded. This is a representative subset of common acronyms — check the product's glossary or style guide for a complete list:
 CLI, TLS, OAuth, DNS, API, HTTP, SSH, RBAC, OLM, PVC, UDI, CRD, CR, FQDN, IDE, OIDC, CA, CORS
 
 ### Q9: Additional resources quality
@@ -131,7 +136,7 @@ Additional resources sections must include links to appropriate and useful conte
 #### Automation
 
 ```sh
-python3 cqa-assessment/scripts/check-external-links.py devspaces-documentation/
+python3 ../cqa-assess/scripts/check-external-links.py "$DOCS_REPO"
 ```
 
 Extracts and categorizes all external URLs by domain type. Does not check link liveness but identifies domain distribution and placeholder URLs.
@@ -194,7 +199,7 @@ Admonitions should draw the reader's attention to certain information. Keep admo
 
 ### Q11: Assembly introduction audience targeting
 
-Assembly introductions must take into account the target audience and apply to a specific persona or skill level. The introduction explains what the user accomplishes by working through the assembled modules.
+Assembly introductions must consider the target audience and apply to a specific persona or skill level. The introduction explains what the user accomplishes by working through the assembled modules.
 
 #### What to check
 
@@ -228,4 +233,4 @@ Assembly introductions must take into account the target audience and apply to a
 
 ## Scoring
 
-See [scoring-guide.md](../../references/scoring-guide.md).
+See [scoring-guide.md](../../reference/scoring-guide.md).

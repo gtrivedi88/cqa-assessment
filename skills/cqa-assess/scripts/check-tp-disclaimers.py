@@ -15,6 +15,7 @@ Usage:
 Exit codes:
     0 - No issues found
     1 - Issues found
+    2 - Invalid arguments (e.g., docs_dir is not a directory)
 """
 
 import argparse
@@ -53,8 +54,8 @@ DP_REQUIRED_PHRASES = [
     "access.redhat.com/support/offerings/devpreview",
 ]
 
-# Directories to scan
-SCAN_DIRS = ["assemblies", "topics", "snippets"]
+# Directories to scan (default; overridable via --scan-dirs)
+DEFAULT_SCAN_DIRS = ["assemblies", "modules", "topics", "snippets"]
 SNIPPET_DIR = "snippets"
 
 # Directories to skip
@@ -71,7 +72,7 @@ TABLE_CONTEXT_PATTERNS = [
 def collect_adoc_files(docs_dir, scan_dirs=None):
     """Collect all .adoc files from scan directories."""
     if scan_dirs is None:
-        scan_dirs = SCAN_DIRS
+        scan_dirs = DEFAULT_SCAN_DIRS
     files = []
     for scan_dir in scan_dirs:
         full_dir = os.path.join(docs_dir, scan_dir)
@@ -153,25 +154,26 @@ def check_snippet_content(snippet_path, required_phrases):
 
 
 def file_includes_snippet(filepath, snippet_name):
-    """Check if a file includes the given snippet (directly or via FeatureName pattern)."""
+    """Check if a file includes the given snippet via an actual include:: directive.
+
+    Matches patterns like:
+        include::snippets/snip_technology-preview.adoc[]
+        include::snippets/snip_developer-preview.adoc[]
+    A bare mention of the snippet filename (e.g., in a comment or prose)
+    does not count as including the disclaimer.
+    """
     try:
         with open(filepath, "r", encoding="utf-8") as f:
             content = f.read()
     except (UnicodeDecodeError, IOError):
         return False
 
-    # Check for direct include of the snippet
-    if f"include::" in content and snippet_name in content:
-        return True
-
-    # Check for FeatureName + snippet include pattern
-    # Pattern: :FeatureName: ... followed by include::snippets/snip_...-preview.adoc[]
-    has_feature_name = ":FeatureName:" in content
-    has_include = snippet_name in content
-    if has_feature_name and has_include:
-        return True
-
-    return False
+    # Check for an actual include:: directive referencing the snippet
+    include_pattern = re.compile(
+        r'^include::.*' + re.escape(snippet_name) + r'\b',
+        re.MULTILINE,
+    )
+    return bool(include_pattern.search(content))
 
 
 def find_tp_dp_mentions(filepath, rel_path):
@@ -249,6 +251,13 @@ def main():
         "docs_dir",
         help="Path to the documentation repository root",
     )
+    parser.add_argument(
+        "--scan-dirs",
+        nargs="+",
+        default=DEFAULT_SCAN_DIRS,
+        metavar="DIR",
+        help=f"Directories to scan (default: {' '.join(DEFAULT_SCAN_DIRS)})",
+    )
     args = parser.parse_args()
 
     docs_dir = os.path.abspath(args.docs_dir)
@@ -259,6 +268,7 @@ def main():
     print("Technology Preview / Developer Preview Disclaimer Check")
     print("=" * 60)
     print(f"Scanning: {docs_dir}")
+    print(f"Directories: {', '.join(args.scan_dirs)}")
     print()
 
     issues = []
@@ -270,7 +280,7 @@ def main():
     if tp_exists:
         tp_valid, tp_missing = check_snippet_content(tp_path, TP_REQUIRED_PHRASES)
         if tp_valid:
-            print(f"   Content: Valid (all required phrases present)")
+            print("   Content: Valid (all required phrases present)")
         else:
             print(f"   Content: INCOMPLETE — missing: {', '.join(tp_missing)}")
             issues.append(f"{TP_SNIPPET} missing required phrases: {', '.join(tp_missing)}")
@@ -282,14 +292,14 @@ def main():
     if dp_exists:
         dp_valid, dp_missing = check_snippet_content(dp_path, DP_REQUIRED_PHRASES)
         if dp_valid:
-            print(f"   Content: Valid")
+            print("   Content: Valid")
         else:
             print(f"   Content: INCOMPLETE — missing: {', '.join(dp_missing)}")
             issues.append(f"{DP_SNIPPET} missing required phrases: {', '.join(dp_missing)}")
     print()
 
     # 2. Find all TP/DP mentions
-    files = collect_adoc_files(docs_dir)
+    files = collect_adoc_files(docs_dir, scan_dirs=args.scan_dirs)
     all_findings = []
     for filepath, rel_path in files:
         all_findings.extend(find_tp_dp_mentions(filepath, rel_path))
@@ -310,13 +320,13 @@ def main():
     dp_findings = [f for f in all_findings if f["type"] == "DP"]
 
     print(f"   Technology Preview mentions: {len(tp_findings)}")
-    for cls in ["PROSE", "TABLE", "COMMENT", "CODE_BLOCK"]:
+    for cls in ["PROSE", "TABLE", "LINK_TEXT", "COMMENT", "CODE_BLOCK"]:
         count = len([f for f in tp_findings if f["classification"] == cls])
         if count > 0:
             print(f"     {cls}: {count}")
 
     print(f"   Developer Preview mentions: {len(dp_findings)}")
-    for cls in ["PROSE", "TABLE", "COMMENT", "CODE_BLOCK"]:
+    for cls in ["PROSE", "TABLE", "LINK_TEXT", "COMMENT", "CODE_BLOCK"]:
         count = len([f for f in dp_findings if f["classification"] == cls])
         if count > 0:
             print(f"     {cls}: {count}")
@@ -342,12 +352,8 @@ def main():
             elif has_inline:
                 status = "OK (has inline disclaimer)"
             else:
-                # Check if this is a snippet file (table) — acceptable without full disclaimer
-                if rel_path.startswith("snippets/"):
-                    status = "OK (snippet file — labels only)"
-                else:
-                    status = "NEEDS DISCLAIMER"
-                    issues.append(f"{rel_path}: mentions TP but has no disclaimer")
+                status = "NEEDS DISCLAIMER"
+                issues.append(f"{rel_path}: mentions TP but has no disclaimer")
             print(f"     {rel_path}: {status}")
     else:
         print("   No files mention TP in prose.")

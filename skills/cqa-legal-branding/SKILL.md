@@ -1,6 +1,7 @@
 ---
 name: cqa-legal-branding
 description: Use when assessing CQA parameters P18-P19, Q17, Q23, O1-O5 (legal, branding, and compliance). Checks product names, Tech Preview disclaimers, conscious language, non-RH link disclaimers, and copyright.
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 ---
 
 # CQA P18-P19, Q17, Q23, O1-O5: Legal and Branding
@@ -21,7 +22,7 @@ description: Use when assessing CQA parameters P18-P19, Q17, Q23, O1-O5 (legal, 
 
 ## Automation scripts
 
-This skill has automation scripts in `cqa-assessment/scripts/`:
+This skill has automation scripts:
 
 | Script | Parameters | What it checks |
 |--------|-----------|----------------|
@@ -46,7 +47,7 @@ All product and platform names must use AsciiDoc attributes instead of hardcoded
 ### Automation
 
 ```bash
-python3 cqa-assessment/scripts/check-product-names.py "$DOCS_REPO"
+python3 ../cqa-assess/scripts/check-product-names.py "$DOCS_REPO"
 ```
 
 Automatically skips code blocks, comments, attribute definitions, and known exceptions (UI labels, plugin names, link text). Reports violations with file:line and replacement suggestions.
@@ -105,7 +106,7 @@ Any feature declared as Technology Preview or Developer Preview must include a f
 ### Automation
 
 ```bash
-python3 cqa-assessment/scripts/check-tp-disclaimers.py "$DOCS_REPO"
+python3 ../cqa-assess/scripts/check-tp-disclaimers.py "$DOCS_REPO"
 ```
 
 Finds all TP/DP mentions, classifies them (prose, table, link text, comment, code block), verifies snippet files exist with correct content, and checks that files mentioning TP/DP in prose include the appropriate disclaimer.
@@ -176,7 +177,7 @@ External links to non-Red Hat sites should have appropriate disclaimers indicati
 ### Automation
 
 ```bash
-python3 cqa-assessment/scripts/check-external-links.py "$DOCS_REPO"
+python3 ../cqa-assess/scripts/check-external-links.py "$DOCS_REPO"
 # Add --details for per-URL breakdown by domain
 ```
 
@@ -214,7 +215,7 @@ Content must follow Red Hat's conscious language guidelines. Avoid terms with ex
 ### Automation
 
 ```bash
-python3 cqa-assessment/scripts/check-conscious-language.py "$DOCS_REPO"
+python3 ../cqa-assess/scripts/check-conscious-language.py "$DOCS_REPO"
 ```
 
 Searches for exclusionary terms using whole-word matching. Automatically excludes code blocks, URLs (GitHub `/blob/master/`), filenames, comments, and attribute definitions. Groups results by violation vs exception.
@@ -286,13 +287,17 @@ Searches for exclusionary terms using whole-word matching. Automatically exclude
 
 The repository must include appropriate copyright and licensing information.
 
+> **Publishing pipeline note:** Some publishing pipelines (e.g., docs.redhat.com) inject legal notices at the platform level. If the repo relies on platform-injected legal notices instead of including them in source files, document this and adjust scoring accordingly. The script checks source-level compliance; platform behavior may satisfy the requirement even if the script reports issues.
+
 ### Automation
 
 ```bash
-python3 cqa-assessment/scripts/check-legal-notices.py "$DOCS_REPO"
+python3 ../cqa-assess/scripts/check-legal-notices.py "$DOCS_REPO"
+# Use --repo-root if the docs directory is a subdirectory of the repo:
+python3 ../cqa-assess/scripts/check-legal-notices.py "$DOCS_REPO/book-dir" --repo-root "$DOCS_REPO"
 ```
 
-Checks LICENSE/LICENCE file existence, docinfo.xml presence in each `titles/*/` directory, and copyright year detection.
+Checks LICENSE/LICENCE file existence (auto-detects repo root by walking up to `.git`), docinfo.xml presence in each `titles/*/` directory, and copyright year detection.
 
 ### Check procedure
 
@@ -304,7 +309,7 @@ Checks LICENSE/LICENCE file existence, docinfo.xml presence in each `titles/*/` 
 
 | Score | Criteria |
 |-------|----------|
-| **4** | License file present; docinfo.xml in all title directories; copyright current |
+| **4** | License file present; docinfo.xml in all title directories; copyright current. (If publishing pipeline injects legal notices, note this as evidence.) |
 | **3** | License and docinfo present but copyright year outdated |
 | **2** | Missing docinfo in some title directories |
 | **1** | No license file or copyright notices |
@@ -316,12 +321,13 @@ After fixing any violations, verify:
 ```bash
 cd "$DOCS_REPO"
 vale assemblies/ topics/ titles/administration_guide/master.adoc titles/user_guide/master.adoc
+# validate-refs.py is the docs repo's own script, not a plugin script
 python3 scripts/validate-refs.py
 
 # Run all legal/branding automation scripts
-python3 ../cqa-assessment/scripts/check-product-names.py .
-python3 ../cqa-assessment/scripts/check-conscious-language.py .
-python3 ../cqa-assessment/scripts/check-tp-disclaimers.py .
-python3 ../cqa-assessment/scripts/check-external-links.py .
-python3 ../cqa-assessment/scripts/check-legal-notices.py .
+python3 ../cqa-assess/scripts/check-product-names.py .
+python3 ../cqa-assess/scripts/check-conscious-language.py .
+python3 ../cqa-assess/scripts/check-tp-disclaimers.py .
+python3 ../cqa-assess/scripts/check-external-links.py .
+python3 ../cqa-assess/scripts/check-legal-notices.py .
 ```

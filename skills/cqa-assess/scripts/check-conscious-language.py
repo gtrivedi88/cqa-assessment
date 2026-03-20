@@ -14,6 +14,7 @@ Usage:
 Exit codes:
     0 - No violations found
     1 - Violations found
+    2 - Invalid arguments (e.g., docs_dir is not a directory)
 """
 
 import argparse
@@ -26,7 +27,7 @@ import sys
 EXCLUSIONARY_TERMS = [
     ("slave", ["secondary", "replica", "standby"], False),
     ("whitelist", ["allowlist"], False),
-    ("blacklist", ["denylist"], False),
+    ("blacklist", ["blocklist", "denylist"], False),
     ("dummy", ["placeholder", "example", "sample"], False),
 ]
 
@@ -34,16 +35,18 @@ EXCLUSIONARY_TERMS = [
 MASTER_TERM = ("master", ["primary", "main", "source"], False)
 
 # Directories to scan (relative to DOCS_DIR)
-SCAN_DIRS = ["assemblies", "topics", "snippets"]
+DEFAULT_SCAN_DIRS = ["assemblies", "modules", "topics", "snippets"]
 
 # Directories to skip
 SKIP_DIRS = {"legacy-content-do-not-use"}
 
 
-def collect_adoc_files(docs_dir):
+def collect_adoc_files(docs_dir, scan_dirs=None):
     """Collect all .adoc files from scan directories."""
+    if scan_dirs is None:
+        scan_dirs = DEFAULT_SCAN_DIRS
     files = []
-    for scan_dir in SCAN_DIRS:
+    for scan_dir in scan_dirs:
         full_dir = os.path.join(docs_dir, scan_dir)
         if not os.path.isdir(full_dir):
             continue
@@ -58,27 +61,33 @@ def collect_adoc_files(docs_dir):
 
 
 def parse_code_block_lines(lines):
-    """Return a set of line indices inside code/literal blocks."""
+    """Return a set of line indices inside code/literal blocks.
+
+    Tracks a single block state so that delimiters nested inside another
+    block type (e.g., ``----`` inside a ``....`` block) are treated as
+    content rather than toggling a second block.
+    """
     code_lines = set()
-    in_source = False
-    in_literal = False
+    current_block = None  # None, "source", or "literal"
     for i, line in enumerate(lines):
         stripped = line.strip()
-        if stripped.startswith("----") and len(stripped) >= 4 and all(c == "-" for c in stripped):
-            if in_source:
-                code_lines.add(i)
-            in_source = not in_source
-            if in_source:
-                code_lines.add(i)
+        is_source_delim = (
+            stripped.startswith("----") and len(stripped) >= 4
+            and all(c == "-" for c in stripped)
+        )
+        is_literal_delim = (
+            stripped.startswith("....") and len(stripped) >= 4
+            and all(c == "." for c in stripped)
+        )
+        if is_source_delim and current_block in (None, "source"):
+            code_lines.add(i)
+            current_block = None if current_block == "source" else "source"
             continue
-        if stripped.startswith("....") and len(stripped) >= 4 and all(c == "." for c in stripped):
-            if in_literal:
-                code_lines.add(i)
-            in_literal = not in_literal
-            if in_literal:
-                code_lines.add(i)
+        if is_literal_delim and current_block in (None, "literal"):
+            code_lines.add(i)
+            current_block = None if current_block == "literal" else "literal"
             continue
-        if in_source or in_literal:
+        if current_block is not None:
             code_lines.add(i)
     return code_lines
 
@@ -193,7 +202,7 @@ def check_file(filepath, rel_path):
         # Check "master" with special handling
         term, replacements, case_sensitive = MASTER_TERM
         for pos, matched_text in find_term_occurrences(line, term, case_sensitive):
-            classification, detail = classify_term_match(
+            classification, _ = classify_term_match(
                 line, pos, pos + len(matched_text), term
             )
             findings.append({
@@ -208,7 +217,7 @@ def check_file(filepath, rel_path):
         # Check other exclusionary terms
         for term, replacements, case_sensitive in EXCLUSIONARY_TERMS:
             for pos, matched_text in find_term_occurrences(line, term, case_sensitive):
-                classification, detail = classify_term_match(
+                classification, _ = classify_term_match(
                     line, pos, pos + len(matched_text), term
                 )
                 findings.append({
@@ -231,6 +240,13 @@ def main():
         "docs_dir",
         help="Path to the documentation repository root",
     )
+    parser.add_argument(
+        "--scan-dirs",
+        nargs="+",
+        default=DEFAULT_SCAN_DIRS,
+        help=("Directories to scan relative to docs_dir "
+              f"(default: {' '.join(DEFAULT_SCAN_DIRS)})"),
+    )
     args = parser.parse_args()
 
     docs_dir = os.path.abspath(args.docs_dir)
@@ -241,11 +257,11 @@ def main():
     print("Conscious Language Check")
     print("=" * 60)
     print(f"Scanning: {docs_dir}")
-    print(f"Directories: {', '.join(SCAN_DIRS)}")
+    print(f"Directories: {', '.join(args.scan_dirs)}")
     print(f"Excluding: {', '.join(SKIP_DIRS)}")
     print()
 
-    files = collect_adoc_files(docs_dir)
+    files = collect_adoc_files(docs_dir, scan_dirs=args.scan_dirs)
     all_findings = []
     for filepath, rel_path in files:
         all_findings.extend(check_file(filepath, rel_path))

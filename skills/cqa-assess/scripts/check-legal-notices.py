@@ -15,6 +15,7 @@ Usage:
 Exit codes:
     0 - All checks pass
     1 - Issues found
+    2 - Invalid arguments (e.g., docs_dir is not a directory)
 """
 
 import argparse
@@ -22,6 +23,22 @@ import os
 import re
 import sys
 from datetime import datetime
+
+
+def find_repo_root(start_dir):
+    """Walk up from start_dir looking for a .git directory.
+
+    Returns the parent directory containing .git, or None if not found.
+    """
+    current = os.path.abspath(start_dir)
+    while True:
+        if os.path.isdir(os.path.join(current, ".git")):
+            return current
+        parent = os.path.dirname(current)
+        if parent == current:
+            # Reached filesystem root without finding .git
+            return None
+        current = parent
 
 
 def check_license_file(docs_dir):
@@ -67,17 +84,17 @@ def check_docinfo(title_dir, title_name):
     if year_match:
         return True, True, int(year_match.group(1)), docinfo_path
 
-    year_match = re.search(r'(?:Copyright|©|\(c\))\s*(\d{4})', content, re.IGNORECASE)
-    if year_match:
-        return True, True, int(year_match.group(1)), docinfo_path
-
-    # Year range: 2020-2024
-    year_match = re.search(r'(\d{4})\s*[-–]\s*(\d{4})', content)
+    # Year range with copyright context: Copyright 2020-2024 / © 2020–2024
+    # Check ranges BEFORE single-year to avoid matching only the first year.
+    year_match = re.search(
+        r'(?:Copyright|©|\(c\)|All rights reserved)[^\n]{0,80}?(\d{4})\s*[-\u2013]\s*(\d{4})',
+        content,
+        re.IGNORECASE,
+    )
     if year_match:
         return True, True, int(year_match.group(2)), docinfo_path
 
-    # Any 4-digit year
-    year_match = re.search(r'\b(20\d{2})\b', content)
+    year_match = re.search(r'(?:Copyright|©|\(c\))\s*(\d{4})', content, re.IGNORECASE)
     if year_match:
         return True, True, int(year_match.group(1)), docinfo_path
 
@@ -90,7 +107,14 @@ def main():
     )
     parser.add_argument(
         "docs_dir",
-        help="Path to the documentation repository root",
+        help="Path to the documentation directory (or repository root)",
+    )
+    parser.add_argument(
+        "--repo-root",
+        default=None,
+        help="Repository root where LICENSE file should be found. "
+             "If not specified, auto-detects by walking up from docs_dir "
+             "looking for a .git directory. Falls back to docs_dir.",
     )
     args = parser.parse_args()
 
@@ -99,24 +123,33 @@ def main():
         print(f"Error: {docs_dir} is not a directory", file=sys.stderr)
         sys.exit(2)
 
+    # Determine the repo root for the LICENSE check
+    if args.repo_root is not None:
+        repo_root = os.path.abspath(args.repo_root)
+    else:
+        detected = find_repo_root(docs_dir)
+        repo_root = detected if detected is not None else docs_dir
+
     current_year = datetime.now().year
 
     print("Copyright and Legal Notice Check")
     print("=" * 60)
     print(f"Scanning: {docs_dir}")
+    if repo_root != docs_dir:
+        print(f"Repo root (for LICENSE): {repo_root}")
     print(f"Current year: {current_year}")
     print()
 
     issues = []
 
-    # 1. Check LICENSE file
+    # 1. Check LICENSE file (uses repo_root, not docs_dir)
     print("1. License file:")
-    found, name, path = check_license_file(docs_dir)
+    found, name, path = check_license_file(repo_root)
     if found:
         print(f"   FOUND: {name}")
         # Check if it's non-empty
         if os.path.getsize(path) == 0:
-            print(f"   WARNING: File is empty")
+            print("   WARNING: File is empty")
             issues.append(f"License file {name} is empty")
     else:
         print("   MISSING: No LICENSE or LICENCE file found at repo root")
@@ -125,10 +158,14 @@ def main():
 
     # 2. Check docinfo.xml in each title directory
     print("2. Document metadata (docinfo.xml):")
+    titles_path = os.path.join(docs_dir, "titles")
     title_dirs = find_title_dirs(docs_dir)
-    if not title_dirs:
+    if not os.path.isdir(titles_path):
         print("   No titles/ directory found")
         issues.append("No titles/ directory found")
+    elif not title_dirs:
+        print("   titles/ directory exists but contains no title subdirectories")
+        issues.append("titles/ directory exists but contains no title subdirectories")
     else:
         for title_name, title_dir in title_dirs:
             exists, has_copyright, year, docinfo_path = check_docinfo(title_dir, title_name)
