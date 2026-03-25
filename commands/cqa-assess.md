@@ -1,16 +1,15 @@
 ---
 description: Run a CQA 2.1 content quality assessment against a Red Hat modular documentation repository
 argument-hint: <docs-repo-path> [--scope repo|assembly|topic] [--mode assess|fix]
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Task
 ---
 
 ## Name
 
-cqa-tools:cqa-assess
+cqa-assess
 
 ## Synopsis
 
-`/cqa-tools:cqa-assess <docs-repo-path> [--scope repo|assembly|topic] [--mode assess|fix]`
+`/cqa-assess <docs-repo-path> [--scope repo|assembly|topic] [--mode assess|fix]`
 
 ## Description
 
@@ -49,17 +48,17 @@ Run each skill in dependency order. Fixes in earlier steps prevent false positiv
 
 | Step | Skill | Parameters |
 |------|-------|------------|
-| 1 | `cqa-tools:cqa-vale-check` | P1 |
-| 2 | `cqa-tools:cqa-modularization` | P2-P7 |
-| 3 | `cqa-tools:cqa-titles-descriptions` | P8-P11, Q11 |
-| 4 | `cqa-tools:cqa-procedures` | P12, Q12-Q16 |
-| 5 | `cqa-tools:cqa-editorial` | P13-P14, Q1-Q5, Q18, Q20 |
-| 6 | `cqa-tools:cqa-links` | P15-P17, Q24-Q25 |
-| 7 | `cqa-tools:cqa-legal-branding` | P18-P19, Q17, Q23, O1-O5 |
-| 8 | `cqa-tools:cqa-user-focus` | Q6-Q10 |
-| 9 | `cqa-tools:cqa-tables-images` | Q19, Q21-Q22 |
-| 10 | `cqa-tools:cqa-onboarding` | O6-O10 |
-| 11 | `cqa-tools:cqa-report` | Final report |
+| 1 | `cqa-vale-check` | P1 |
+| 2 | `cqa-modularization` | P2-P7 |
+| 3 | `cqa-titles-descriptions` | P8-P11 |
+| 4 | `cqa-procedures` | P12, Q12-Q16 |
+| 5 | `cqa-editorial` | P13-P14, Q1-Q5, Q18, Q20 |
+| 6 | `cqa-links` | P15-P17, Q24-Q25 |
+| 7 | `cqa-legal-branding` | P18-P19, Q17, Q23, O1-O5 |
+| 8 | `cqa-user-focus` | Q6-Q11 |
+| 9 | `cqa-tables-images` | Q19, Q21-Q22 |
+| 10 | `cqa-onboarding` | O6-O10 |
+| 11 | `cqa-report` | Final report |
 
 For each step:
 
@@ -75,30 +74,30 @@ For each step:
 Ten Python scripts in `skills/cqa-assess/scripts/` automate repeatable checks. Run them against the docs repo:
 
 ```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/skills/cqa-assess/scripts/check-product-names.py "$DOCS_REPO"
-python3 ${CLAUDE_PLUGIN_ROOT}/skills/cqa-assess/scripts/check-scannability.py "$DOCS_REPO"
-python3 ${CLAUDE_PLUGIN_ROOT}/skills/cqa-assess/scripts/check-readability.py "$DOCS_REPO"
+python3 skills/cqa-assess/scripts/check-product-names.py "$DOCS_REPO"
+python3 skills/cqa-assess/scripts/check-scannability.py "$DOCS_REPO"
+python3 skills/cqa-assess/scripts/check-readability.py "$DOCS_REPO"
 ```
 
 Each script exits `0` (pass) or `1` (issues found). Python 3.9+ stdlib only.
 
-## Usage examples
+## Usage Examples
 
 ```bash
 # Full repo assessment (assess only)
-/cqa-tools:cqa-assess /path/to/docs-repo
+/cqa-assess /path/to/docs-repo
 
 # Full repo assessment with fixes
-/cqa-tools:cqa-assess /path/to/docs-repo --mode fix
+/cqa-assess /path/to/docs-repo --mode fix
 
 # Assess one assembly and its topics
-/cqa-tools:cqa-assess /path/to/docs-repo --scope assembly
+/cqa-assess /path/to/docs-repo --scope assembly
 
 # Assess one topic file
-/cqa-tools:cqa-assess /path/to/docs-repo --scope topic
+/cqa-assess /path/to/docs-repo --scope topic
 ```
 
-## Important rules
+## Notes
 
 - **Respect the user's chosen mode.** In assess mode, never modify files. In fix mode, fix everything before scoring.
 - **Respect the user's chosen scope.** Only assess files within the scope.

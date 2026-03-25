@@ -1,7 +1,6 @@
 ---
 name: cqa-modularization
 description: Use when assessing CQA parameters P2-P7 (modularization). Checks assembly structure, module prefixes, required elements, templates, and nesting depth.
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 ---
 
 # CQA P2-P7: Modularization
@@ -28,7 +27,7 @@ This skill has an automation script:
 Python 3.9+ stdlib only, no dependencies. Exit code 0 = pass, 1 = issues found.
 
 ```bash
-python3 ../cqa-assess/scripts/check-content-types.py "$DOCS_REPO"
+python3 skills/cqa-assess/scripts/check-content-types.py "$DOCS_REPO"
 ```
 
 Checks: filename prefix matches `:_mod-docs-content-type:`, `[role="_abstract"]` present, `[id="..._{context}"]` present, no procedure-only block titles in non-procedure files, no `==` subsections in procedures, ordered list after `.Procedure`.

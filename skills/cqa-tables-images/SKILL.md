@@ -1,7 +1,6 @@
 ---
 name: cqa-tables-images
 description: Use when assessing CQA parameters Q19, Q21-Q22 (tables and images). Checks for excessive screenshots, table captions, and image alt text.
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 ---
 
 # CQA Q19, Q21-Q22: Tables and Images

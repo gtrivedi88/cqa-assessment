@@ -1,7 +1,6 @@
 ---
 name: cqa-titles-descriptions
 description: Use when assessing CQA parameters P8-P11 (titles and short descriptions). Checks abstract quality, character limits, and title conventions.
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 ---
 
 # CQA P8-P11: Titles and Short Descriptions

@@ -1,7 +1,6 @@
 ---
 name: cqa-legal-branding
 description: Use when assessing CQA parameters P18-P19, Q17, Q23, O1-O5 (legal, branding, and compliance). Checks product names, Tech Preview disclaimers, conscious language, non-RH link disclaimers, and copyright.
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 ---
 
 # CQA P18-P19, Q17, Q23, O1-O5: Legal and Branding
@@ -47,34 +46,26 @@ All product and platform names must use AsciiDoc attributes instead of hardcoded
 ### Automation
 
 ```bash
-python3 ../cqa-assess/scripts/check-product-names.py "$DOCS_REPO"
+python3 skills/cqa-assess/scripts/check-product-names.py "$DOCS_REPO"
 ```
 
 Automatically skips code blocks, comments, attribute definitions, and known exceptions (UI labels, plugin names, link text). Reports violations with file:line and replacement suggestions.
 
 ### Check procedure
 
-Search active content (exclude `legacy-content-do-not-use/`, `common/attributes.adoc` definition lines, code blocks, and YAML) for hardcoded names:
-
-| Hardcoded string | Replace with | Search command |
-|-----------------|-------------|----------------|
-| `Red Hat OpenShift Dev Spaces` | `{prod}` | `grep -r "Red Hat OpenShift Dev Spaces" assemblies/ topics/ snippets/` |
-| `OpenShift Dev Spaces` (in prose, not UI labels) | `{prod-short}` | `grep -r "OpenShift Dev Spaces" assemblies/ topics/ snippets/` |
-| `Dev Spaces` (in prose, not UI labels) | `{prod-short}` or `{prod2}` | `grep -r "Dev Spaces" assemblies/ topics/ snippets/` |
-| `OpenShift Container Platform` | `{ocp}` | `grep -r "OpenShift Container Platform" assemblies/ topics/ snippets/` |
-| `Openshift` (lowercase S) | `OpenShift` | `grep -r "Openshift" assemblies/ topics/ snippets/` |
+The script auto-discovers product names from the repo's `common/attributes.adoc` file. It parses all attribute definitions, resolves nested references, identifies product name attributes, and searches active content for hardcoded uses that should use the corresponding attribute. It also auto-generates case-sensitivity checks for CamelCase product names (e.g., "OpenShift" → flags "Openshift").
 
 ### Exceptions — do NOT replace
 
-These are legitimate hardcoded uses:
+These are legitimate hardcoded uses (the script auto-detects and marks these):
 
 | Context | Example | Why |
 |---------|---------|-----|
-| **UI button/menu labels** | `Connect to Dev Spaces` | Literal UI text the user must click |
-| **Plugin/extension names** | `Gateway provider for OpenShift Dev Spaces` | Official third-party plugin name |
-| **Link text for external URLs** | `link:https://plugins.jetbrains.com/...[OpenShift Dev Spaces plugin]` | Display text matching the linked resource |
-| **Attribute definitions** | `:prod-short: OpenShift Dev Spaces` in `common/attributes.adoc` | Where attributes are defined |
-| **Code blocks and YAML** | `image: devspaces/server` | Technical identifiers, not prose |
+| **UI button/menu labels** | Literal button or menu text | UI text the user must click |
+| **Plugin/extension names** | Official third-party plugin names | External names, not documentation prose |
+| **Link text for external URLs** | `link:https://...[Product Name plugin]` | Display text matching the linked resource |
+| **Attribute definitions** | `:prod-short: Product Name` in `common/attributes.adoc` | Where attributes are defined |
+| **Code blocks and YAML** | Technical identifiers | Not prose |
 
 ### Additional checks
 
@@ -106,7 +97,7 @@ Any feature declared as Technology Preview or Developer Preview must include a f
 ### Automation
 
 ```bash
-python3 ../cqa-assess/scripts/check-tp-disclaimers.py "$DOCS_REPO"
+python3 skills/cqa-assess/scripts/check-tp-disclaimers.py "$DOCS_REPO"
 ```
 
 Finds all TP/DP mentions, classifies them (prose, table, link text, comment, code block), verifies snippet files exist with correct content, and checks that files mentioning TP/DP in prose include the appropriate disclaimer.
@@ -177,7 +168,7 @@ External links to non-Red Hat sites should have appropriate disclaimers indicati
 ### Automation
 
 ```bash
-python3 ../cqa-assess/scripts/check-external-links.py "$DOCS_REPO"
+python3 skills/cqa-assess/scripts/check-external-links.py "$DOCS_REPO"
 # Add --details for per-URL breakdown by domain
 ```
 
@@ -215,14 +206,14 @@ Content must follow Red Hat's conscious language guidelines. Avoid terms with ex
 ### Automation
 
 ```bash
-python3 ../cqa-assess/scripts/check-conscious-language.py "$DOCS_REPO"
+python3 skills/cqa-assess/scripts/check-conscious-language.py "$DOCS_REPO"
 ```
 
 Searches for exclusionary terms using whole-word matching. Automatically excludes code blocks, URLs (GitHub `/blob/master/`), filenames, comments, and attribute definitions. Groups results by violation vs exception.
 
 ### Check procedure
 
-**Tier 1 — "Do not use" (script-checked):**
+**Tier 1 — "Do not use" (all script-checked: `check-conscious-language.py` checks all 8 terms):**
 
 | Term | Replacement | Exception |
 |------|-------------|-----------|
@@ -292,9 +283,9 @@ The repository must include appropriate copyright and licensing information.
 ### Automation
 
 ```bash
-python3 ../cqa-assess/scripts/check-legal-notices.py "$DOCS_REPO"
+python3 skills/cqa-assess/scripts/check-legal-notices.py "$DOCS_REPO"
 # Use --repo-root if the docs directory is a subdirectory of the repo:
-python3 ../cqa-assess/scripts/check-legal-notices.py "$DOCS_REPO/book-dir" --repo-root "$DOCS_REPO"
+python3 skills/cqa-assess/scripts/check-legal-notices.py "$DOCS_REPO/book-dir" --repo-root "$DOCS_REPO"
 ```
 
 Checks LICENSE/LICENCE file existence (auto-detects repo root by walking up to `.git`), docinfo.xml presence in each `titles/*/` directory, and copyright year detection.
@@ -320,14 +311,15 @@ After fixing any violations, verify:
 
 ```bash
 cd "$DOCS_REPO"
+# Adjust directory names to match your repo structure (topics/ or modules/)
 vale assemblies/ topics/ titles/administration_guide/master.adoc titles/user_guide/master.adoc
-# validate-refs.py is the docs repo's own script, not a plugin script
-python3 scripts/validate-refs.py
+
+python3 skills/cqa-assess/scripts/validate-refs.py "$DOCS_REPO"
 
 # Run all legal/branding automation scripts
-python3 ../cqa-assess/scripts/check-product-names.py .
-python3 ../cqa-assess/scripts/check-conscious-language.py .
-python3 ../cqa-assess/scripts/check-tp-disclaimers.py .
-python3 ../cqa-assess/scripts/check-external-links.py .
-python3 ../cqa-assess/scripts/check-legal-notices.py .
+python3 skills/cqa-assess/scripts/check-product-names.py .
+python3 skills/cqa-assess/scripts/check-conscious-language.py .
+python3 skills/cqa-assess/scripts/check-tp-disclaimers.py .
+python3 skills/cqa-assess/scripts/check-external-links.py .
+python3 skills/cqa-assess/scripts/check-legal-notices.py .
 ```

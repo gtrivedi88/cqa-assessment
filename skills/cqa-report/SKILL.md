@@ -1,7 +1,6 @@
 ---
 name: cqa-report
 description: Use when all CQA parameters have been assessed and you need to generate the final CQA 2.1 assessment report with scores, evidence, and summary tables.
-allowed-tools: Read, Glob, Grep, Write
 ---
 
 # CQA Report Generation

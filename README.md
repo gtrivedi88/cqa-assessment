@@ -31,6 +31,7 @@ Assess, fix, and score Red Hat modular documentation against all 54 CQA 2.1 para
 > **Plugin version**: This toolkit is also available as a plugin for
 > [redhat-docs-agent-tools](https://github.com/redhat-documentation/redhat-docs-agent-tools)
 > under `plugins/cqa-tools/`, with native command support (`/cqa-tools:cqa-assess`).
+> Install via `/plugin install cqa-tools@redhat-docs-agent-tools` in Claude Code.
 
 ## Quick start
 
@@ -168,7 +169,7 @@ Read skills/cqa-editorial/SKILL.md and assess editorial quality in
 
 ## Automation scripts
 
-Ten check scripts and one utility in [`skills/cqa-assess/scripts/`](skills/cqa-assess/scripts/) automate repeatable CQA checks. When using an AI assistant, these scripts are **run automatically** — the assessment guides reference the right script for each parameter, and the AI executes them as part of the assessment workflow. No manual invocation needed.
+Eleven check scripts and one utility in [`skills/cqa-assess/scripts/`](skills/cqa-assess/scripts/) automate repeatable CQA checks. When using an AI assistant, these scripts are **run automatically** — the assessment guides reference the right script for each parameter, and the AI executes them as part of the assessment workflow. No manual invocation needed.
 
 For manual use or CI integration, each script accepts a docs repo path, prints structured output, and exits `0` (pass), `1` (issues found), or `2` (invalid arguments). Python 3.9+ stdlib only — zero external dependencies.
 
@@ -186,6 +187,7 @@ For manual use or CI integration, each script accepts a docs repo path, prints s
 | `check-simple-words.py` | Q3 | Complex word patterns (utilize, leverage, in order to, etc.) | |
 | `check-readability.py` | Q4 | Flesch-Kincaid Grade Level per file and overall | |
 | `check-fluff.py` | Q5 | Self-referential patterns, forward-referencing, filler phrases | |
+| `validate-refs.py` | P15 | Broken xrefs, missing includes, missing images, duplicate IDs | |
 | `resolve-includes.py` | (utility) | Recursively resolve `include::` tree from any `.adoc` file | `--format`, `--include-root` |
 
 ### Common flags
@@ -314,7 +316,7 @@ cqa-assessment/
 ├── skills/                                # 12 assessment guides (plain markdown)
 │   ├── cqa-assess/                        # Main orchestrator
 │   │   ├── SKILL.md
-│   │   └── scripts/                       # 11 automation scripts (Python 3.9+)
+│   │   └── scripts/                       # 12 automation scripts (Python 3.9+)
 │   │       ├── check-product-names.py
 │   │       ├── check-conscious-language.py
 │   │       ├── check-content-types.py
@@ -325,6 +327,7 @@ cqa-assessment/
 │   │       ├── check-simple-words.py
 │   │       ├── check-readability.py
 │   │       ├── check-fluff.py
+│   │       ├── validate-refs.py
 │   │       └── resolve-includes.py
 │   ├── cqa-vale-check/SKILL.md            # P1: Vale DITA linting
 │   ├── cqa-modularization/SKILL.md        # P2-P7: Module structure

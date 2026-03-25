@@ -1,7 +1,6 @@
 ---
 name: cqa-onboarding
 description: Use when assessing CQA parameters O6-O10 (onboarding to docs.redhat.com). Checks support disclaimers, SME verification, source format, Pantheon publishing, and official site publication.
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 ---
 
 # CQA O6-O10: Onboarding
@@ -22,8 +21,8 @@ Some repos use `modules/` instead of `topics/` for content files. All `topics/` 
 
 ## Cross-references
 
-- **O6 (support disclaimers)** overlaps with P19/O5 in `cqa-tools:cqa-legal-branding`. Use the cqa-legal-branding TP/DP disclaimer results as evidence for O6 compliance. O6 adds the community-supported component and unsupported configuration checks.
-- **O7 (SME/QE verification)** can use Q15 evidence from `cqa-tools:cqa-procedures` — a high percentage of procedures with `.Verification` sections is supporting evidence of testability.
+- **O6 (support disclaimers)** overlaps with P19/O5 in `cqa-legal-branding`. Use the cqa-legal-branding TP/DP disclaimer results as evidence for O6 compliance. O6 adds the community-supported component and unsupported configuration checks.
+- **O7 (SME/QE verification)** can use Q15 evidence from `cqa-procedures` — a high percentage of procedures with `.Verification` sections is supporting evidence of testability.
 
 ## Step 1: Identify the docs repo
 
@@ -37,7 +36,7 @@ All content must be clearly identified as supported, Technology Preview, or Deve
 
 ### Check procedure
 
-1. **Technology Preview features**: Verify all TP features have the standard `[IMPORTANT]` disclaimer via `snip_technology-preview.adoc`. Cross-reference with the P19/O5 check in `cqa-tools:cqa-legal-branding`.
+1. **Technology Preview features**: Verify all TP features have the standard `[IMPORTANT]` disclaimer via `snip_technology-preview.adoc`. Cross-reference with the P19/O5 check in `cqa-legal-branding`.
 
 2. **Developer Preview features**: Verify all DP features have the standard DP disclaimer. DP features receive zero Red Hat support.
 
@@ -88,7 +87,7 @@ This parameter requires human confirmation and cannot be fully assessed through 
 
 3. **CI/CD pipeline validation**: Verify the pipeline runs automated checks that catch technical issues:
    - Vale DITA linting
-   - Cross-reference validation (the docs repo's own `scripts/validate-refs.py`)
+   - Cross-reference validation (`validate-refs.py`)
    - Build validation (ccutil compile)
 
 4. **SME merge requests**: Check for recent MRs from SMEs that update technical content:
