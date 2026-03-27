@@ -1,13 +1,14 @@
 ---
 name: cqa-vale-check
-description: Use when assessing CQA parameter P1 (Vale DITA check). Runs Vale with AsciiDocDITA rules (direct for repo scope, dita-validate-asciidoc for assembly/topic scope) and fixes violations to achieve 0 errors and 0 warnings.
+description: Use when assessing CQA parameter P1 (Vale DITA check). Runs Vale with AsciiDocDITA rules (direct for repo scope, dita-tools:dita-validate-asciidoc for assembly/topic scope) and fixes violations to achieve 0 errors and 0 warnings.
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Skill
 ---
 
 # CQA P1: Vale DITA Check
 
 ## Parameter
 
-**P1: Content passes Vale dita-validate-asciidoc check with no errors or warnings.**
+**P1: Content passes Vale dita-tools:dita-validate-asciidoc check with no errors or warnings.**
 Level: Required. Target: Score 4 (0 errors, 0 warnings).
 
 ## Step 1: Identify the docs repo
@@ -16,7 +17,7 @@ Ask the user for the path to their Red Hat modular documentation repository. Thi
 
 Store this as `DOCS_REPO` for all subsequent steps.
 
-Vale must be installed (v3.x+). For assembly/topic scope, the `dita-validate-asciidoc` skill checks this automatically. For repo-wide scope, verify manually:
+Vale must be installed (v3.x+). For assembly/topic scope, the `dita-tools:dita-validate-asciidoc` skill checks this automatically. For repo-wide scope, verify manually:
 
 ```bash
 vale --version
@@ -32,7 +33,9 @@ Choose the approach based on scope.
 
 Run Vale directly against all AsciiDoc files in the repo. This catches every `.adoc` file, including orphan files not referenced by any assembly.
 
-First, ensure a `.vale.ini` exists in the docs repo root with AsciiDocDITA rules. If missing, create one:
+**IMPORTANT**: CQA P1 requires checking with **AsciiDocDITA** rules only. The repo may have its own `.vale.ini` with different styles (e.g., `RedHat`, `AsciiDoc`, `RHEL10`). Do NOT use the repo's own Vale config for CQA P1 — those are for the repo's CI, not for CQA assessment. Always create and use a dedicated CQA config file.
+
+Create `.vale-cqa.ini` in the docs repo root (overwrite if it exists):
 
 ```ini
 StylesPath = .vale/styles
@@ -45,26 +48,28 @@ Packages = https://github.com/jhradilek/asciidoctor-dita-vale/releases/latest/do
 BasedOnStyles = AsciiDocDITA
 ```
 
-Then sync and run:
+Then sync and run with the CQA config explicitly:
 
 ```bash
 cd "$DOCS_REPO"
-vale sync
-find . -name '*.adoc' -not -type l | xargs vale
+vale --config=.vale-cqa.ini sync
+find . -name '*.adoc' -not -type l | xargs vale --config=.vale-cqa.ini
 ```
+
+Do NOT run `vale` without `--config=.vale-cqa.ini` — without it, Vale picks up the repo's own `.vale.ini` which may use different style packages and produce errors/warnings unrelated to CQA P1.
 
 ### For assembly scope — dita-validate-asciidoc
 
-Invoke the `dita-validate-asciidoc` skill, which discovers all included files and runs Vale with content-type-aware ShortDescription filtering:
+Invoke the `dita-tools:dita-validate-asciidoc` skill, which discovers all included files and runs Vale with content-type-aware ShortDescription filtering:
 
 ```
-Skill: dita-validate-asciidoc, args: "$DOCS_REPO/assemblies/admin/assembly_installing.adoc"
+Skill: dita-tools:dita-validate-asciidoc, args: "$DOCS_REPO/assemblies/admin/assembly_installing.adoc"
 ```
 
 ### For single-topic scope — dita-validate-asciidoc
 
 ```
-Skill: dita-validate-asciidoc, args: "$DOCS_REPO/topics/con-overview.adoc"
+Skill: dita-tools:dita-validate-asciidoc, args: "$DOCS_REPO/topics/con-overview.adoc"
 ```
 
 If the result is `0 errors, 0 warnings` (or no output for dita-validate-asciidoc) — score **4** and skip to Step 6.
@@ -132,13 +137,13 @@ Re-run the same method used in Step 2. The result MUST be clean before scoring.
 
 ```bash
 cd "$DOCS_REPO"
-find . -name '*.adoc' -not -type l | xargs vale
+find . -name '*.adoc' -not -type l | xargs vale --config=.vale-cqa.ini
 ```
 
 ### For assembly or topic scope — dita-validate-asciidoc
 
 ```
-Skill: dita-validate-asciidoc, args: "$ASSEMBLY_OR_TOPIC"
+Skill: dita-tools:dita-validate-asciidoc, args: "$ASSEMBLY_OR_TOPIC"
 ```
 
 If warnings remain, return to Step 3. Do not score until the output is clean.
@@ -156,6 +161,7 @@ Record the score, the exact Vale output (file count, error count, warning count)
 
 ## Common mistakes
 
+- **Using the repo's own Vale config** instead of `.vale-cqa.ini` — the repo's `.vale.ini` may use `RedHat`, `AsciiDoc`, or `RHEL10` styles that produce errors unrelated to CQA P1 (e.g., `RedHat.TermsErrors` for "vs"). CQA P1 only checks AsciiDocDITA rules.
 - Suppressing warnings in Vale config instead of fixing content
 - Moving links to Additional resources but leaving a bold pseudo-heading after it (causes RelatedLinks warnings)
 - Forgetting to convert bold pseudo-headings to `==` headings in concept files

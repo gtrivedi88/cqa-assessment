@@ -1,6 +1,7 @@
 ---
 name: cqa-procedures
 description: Use when assessing CQA parameters P12, Q12-Q16 (procedure quality). Checks prerequisites, step counts, command examples, optional/conditional step formatting, verification sections, and Additional resources.
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 ---
 
 # CQA P12, Q12-Q16: Procedures
@@ -22,8 +23,8 @@ Some repos use `modules/` instead of `topics/` for content files. All `topics/` 
 
 ## Cross-references
 
-- **P12 prerequisites** overlap with `cqa-modularization` P4 Check 5 (same checks for label, formatting, count, declarative language, and placement). If both skills run, use the cqa-modularization result as canonical and skip the duplicate check here.
-- **Procedure title grammar** (imperative form) is canonically assessed in `cqa-modularization` P3 Check 5a. This skill focuses on procedure-specific quality (step count, examples, verification, formatting).
+- **P12 prerequisites** overlap with `cqa-tools:cqa-modularization` P4 Check 5 (same checks for label, formatting, count, declarative language, and placement). If both skills run, use the cqa-modularization result as canonical and skip the duplicate check here.
+- **Procedure title grammar** (imperative form) is canonically assessed in `cqa-tools:cqa-modularization` P3 Check 5a. This skill focuses on procedure-specific quality (step count, examples, verification, formatting).
 
 ## Step 1: Identify the docs repo
 

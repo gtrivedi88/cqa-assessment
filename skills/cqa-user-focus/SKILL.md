@@ -1,6 +1,7 @@
 ---
 name: cqa-user-focus
 description: Use when assessing CQA parameters Q6-Q11 (user focus). Checks persona targeting, pain point coverage, acronym expansion, Additional resources quality, admonition density, and assembly introduction audience targeting.
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 ---
 
 # CQA Q6-Q11: User Focus
@@ -135,7 +136,7 @@ Additional resources sections must include links to appropriate and useful conte
 #### Automation
 
 ```sh
-python3 skills/cqa-assess/scripts/check-external-links.py "$DOCS_REPO"
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/cqa-assess/scripts/check-external-links.py "$DOCS_REPO"
 ```
 
 Extracts and categorizes all external URLs by domain type. Does not check link liveness but identifies domain distribution and placeholder URLs.

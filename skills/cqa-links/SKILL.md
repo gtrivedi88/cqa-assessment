@@ -1,6 +1,7 @@
 ---
 name: cqa-links
 description: Use when assessing CQA parameters P15-P17, Q24-Q25 (links and URLs). Checks for broken xrefs, missing includes, missing images, redirect integrity, and content interlinking.
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 ---
 
 # CQA P15-P17, Q24-Q25: Links and URLs
@@ -33,7 +34,7 @@ Every cross-reference, include directive, and image reference must resolve to an
 
 Run the reference validation script:
 ```bash
-python3 skills/cqa-assess/scripts/validate-refs.py "$DOCS_REPO"
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/cqa-assess/scripts/validate-refs.py "$DOCS_REPO"
 ```
 
 This checks 4 things:
@@ -205,7 +206,7 @@ grep -rn 'container-platform/latest/' topics/ modules/ assemblies/ common/ --inc
 After fixing any violations, re-run the reference validation:
 
 ```bash
-python3 skills/cqa-assess/scripts/validate-refs.py "$DOCS_REPO"
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/cqa-assess/scripts/validate-refs.py "$DOCS_REPO"
 ```
 
 Then run Vale to ensure no new warnings were introduced:

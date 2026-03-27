@@ -1,6 +1,7 @@
 ---
 name: cqa-modularization
 description: Use when assessing CQA parameters P2-P7 (modularization). Checks assembly structure, module prefixes, required elements, templates, and nesting depth.
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 ---
 
 # CQA P2-P7: Modularization
@@ -27,7 +28,7 @@ This skill has an automation script:
 Python 3.9+ stdlib only, no dependencies. Exit code 0 = pass, 1 = issues found.
 
 ```bash
-python3 skills/cqa-assess/scripts/check-content-types.py "$DOCS_REPO"
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/cqa-assess/scripts/check-content-types.py "$DOCS_REPO"
 ```
 
 Checks: filename prefix matches `:_mod-docs-content-type:`, `[role="_abstract"]` present, `[id="..._{context}"]` present, no procedure-only block titles in non-procedure files, no `==` subsections in procedures, ordered list after `.Procedure`.
@@ -324,7 +325,7 @@ P5 checks that every non-negotiable modular element is present AND meets quality
 
 ### Check 1: Structural elements and abstract formatting
 
-Reference: Ingrid Towey, "Rewrite for Impact: DITA short descriptions" (CCS presentation)
+Reference: "Rewrite for Impact: DITA short descriptions" (CCS presentation)
 
 Every non-snippet module must have:
 
@@ -342,7 +343,7 @@ If P4 Check 1 passed, the above 4 elements are already verified. Additionally, v
 | **Blank line between title and abstract** | There must be at least one blank line between the `= Title` line and `[role="_abstract"]`. Other content (anchors, passthrough comments) may appear between them, but a blank line must exist. |
 | **No blank line between annotation and paragraph** | `[role="_abstract"]` must be followed **immediately** by the abstract paragraph on the next line — no blank lines between them. A blank line after the annotation disconnects the paragraph from the abstract role, making the abstract empty in DITA. |
 | **Single paragraph** | The abstract must be exactly one contiguous paragraph. No blank lines within it, no code blocks, no lists, no admonition blocks. A blank line must terminate the abstract before any subsequent body content. |
-| **Character count 50-300** | The abstract paragraph must be between 50 and 300 characters. Count raw AsciiDoc text (attributes like `{prod-short}` count as their literal text, e.g., 12 characters). "300 characters is between 42 and 75 words" (Ingrid Towey). |
+| **Character count 50-300** | The abstract paragraph must be between 50 and 300 characters. Count raw AsciiDoc text (attributes like `{prod-short}` count as their literal text, e.g., 12 characters). "300 characters is between 42 and 75 words" (CCS presentation). |
 
 **Common structural violations:**
 
@@ -552,6 +553,12 @@ Record: total files checked per check, number of violations, specific file paths
 
 Each file must use the modular documentation content type (CONCEPT, PROCEDURE, REFERENCE) that is most appropriate for the information it conveys. This goes beyond structural checks (P3/P4) — it verifies that the content type *selection* is correct.
 
+**IMPORTANT — Distinguishing automated checks from manual assessment**: The `check-content-types.py` script performs **structural checks only** (prefix vs declared type, required elements, invalid block titles). It does NOT analyze whether a file's actual content matches its declared type. The checks below (Check 1-5) are **manual assessment** steps that require reading and understanding the file content. When reporting results, clearly separate:
+- **Script findings**: structural issues detected by `check-content-types.py` (prefix mismatch, missing attributes, invalid block titles)
+- **Manual assessment**: content type correctness issues identified by reading the files (e.g., "this proc_ file is primarily explanatory")
+
+Do NOT present manual assessment findings as if they came from the automated script.
+
 ### Check 1: Procedure files contain actionable steps
 
 Every PROCEDURE file must have a `.Procedure` section with ordered steps (`. `) that are actionable instructions. Flag:
@@ -592,7 +599,7 @@ Flag concept files that contain only an abstract and xrefs (typically ≤15 line
 | **2** | Multiple content type mismatches or widespread thin wrappers |
 | **1** | Content types not checked or pervasive mismatches |
 
-Record: total files checked per type, violations per check category, files fixed.
+Record: total files checked per type, violations per check category, files fixed. Clearly label which findings are from automated scripts and which are from manual assessment.
 
 ## Quality: American English grammar
 
